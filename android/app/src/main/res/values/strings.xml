@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Activ Lock</string>
+    <string name="accessibility_service_description">ActivLock needs this service to detect when a locked app is opened and block it until you complete your activity.</string>
+</resources>
