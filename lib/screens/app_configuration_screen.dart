@@ -38,8 +38,7 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
   
   // Limits Config
   int _maxExceptions = 3;
-  int _dailyUnlockLimit = 10; 
-  int _stepGoal = 500;
+  int _dailyUnlockLimit = 10;
 
   @override
   void initState() {
@@ -58,7 +57,6 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
       _targetReps = app.targetReps;
       _maxExceptions = app.dailyExceptions;
       _dailyUnlockLimit = app.dailyUnlockLimit;
-      _stepGoal = app.stepGoal;
     } catch (e) {
       // Defaults
     }
@@ -89,13 +87,11 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
     final existingApps = ref.read(lockedAppsProvider);
     int existingUsedEx = 0;
     int existingUsedUnlocks = 0;
-    int existingUsedStepUnlocks = 0;
     DateTime? existingReset;
     try {
        final oldApp = existingApps.firstWhere((a) => a.packageName == widget.packageName);
        existingUsedEx = oldApp.usedExceptions;
        existingUsedUnlocks = oldApp.usedUnlocks;
-       existingUsedStepUnlocks = oldApp.usedStepUnlocks;
        existingReset = oldApp.lastResetDate;
     } catch (_) {}
 
@@ -110,8 +106,6 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
       usedExceptions: existingUsedEx,
       dailyUnlockLimit: _dailyUnlockLimit,
       usedUnlocks: existingUsedUnlocks,
-      stepGoal: _stepGoal,
-      usedStepUnlocks: existingUsedStepUnlocks,
       lastResetDate: existingReset,
     );
 
@@ -213,16 +207,6 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
               activeColor: WakandaTheme.beadRed,
               label: _maxExceptions.toString(),
               onChanged: (val) => setState(() => _maxExceptions = val.round()),
-            ),
-            const SizedBox(height: 15),
-
-            Text("Daily Step Goal Bypass: $_stepGoal", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
-            Slider(
-              value: _stepGoal.toDouble(),
-              min: 50, max: 20000, divisions: 399,
-              activeColor: WakandaTheme.herbPurple,
-              label: _stepGoal.toString(),
-              onChanged: (val) => setState(() => _stepGoal = val.round()),
             ),
           ],
         );

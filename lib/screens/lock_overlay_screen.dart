@@ -7,8 +7,6 @@ import '../services/pose_detection_service.dart'; // Keep for other refs if need
 import '../models/locked_app.dart';
 import '../models/exercise_type.dart';
 import '../theme/wakanda_theme.dart';
-import 'package:pedometer/pedometer.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class LockOverlayScreen extends ConsumerStatefulWidget {
   final String? lockedPackageName;
@@ -33,8 +31,6 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
   ExerciseType _exerciseType = ExerciseType.squat;
   int _targetReps = 10;
   int _maxExceptions = 3;
-  int _dailyStepGoal = 1000;
-  bool _isLoadingSteps = false;
 
   @override
   void initState() {
@@ -75,9 +71,6 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
     final int usedE = currentApp.usedExceptions;
     final int limitE = currentApp.dailyExceptions;
     final canE = usedE < limitE;
-    
-    final int usedSteps = currentApp.usedStepUnlocks;
-    final canStep = usedSteps < 1; // 1-time bypass
 
     if (mounted) {
       setState(() {
@@ -87,8 +80,6 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
         _stats['maxEmergency'] = limitE;
         _canUnlock = canU;
         _canEmergency = canE;
-        _canStepUnlock = canStep;
-        _dailyStepGoal = currentApp.stepGoal;
       });
     }
   }
@@ -117,37 +108,6 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
       }
     } else {
       _showSnack('Invalid Access Code!');
-    }
-  }
-
-  void _unlockWithSteps() async {
-    if (!_canStepUnlock) {
-      _showSnack('Step bypass already used today!');
-      return;
-    }
-
-    setState(() => _isLoadingSteps = true);
-
-    try {
-      if (await Permission.activityRecognition.request().isGranted) {
-        final event = await Pedometer.stepCountStream.first;
-        final steps = event.steps;
-
-        if (steps >= _dailyStepGoal) {
-          if (widget.lockedPackageName != null) {
-              await ref.read(appLockServiceProvider).incrementStepUnlock(widget.lockedPackageName!);
-          }
-          _performUnlock();
-        } else {
-          _showSnack('Goal not reached! You have walked $steps / $_dailyStepGoal steps today.');
-        }
-      } else {
-        _showSnack('Permission denied for Activity Recognition');
-      }
-    } catch (e) {
-      _showSnack('Error fetching steps. Make sure sensor is available.');
-    } finally {
-      if (mounted) setState(() => _isLoadingSteps = false);
     }
   }
 
@@ -249,17 +209,6 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
                               label: "PUSHUPS",
                               onTap: () => _startActivity(ExerciseType.pushup)
                           ),
-                        const SizedBox(width: 15),
-                        _isLoadingSteps
-                            ? const Padding(
-                                padding: EdgeInsets.all(20),
-                                child: CircularProgressIndicator(color: WakandaTheme.herbPurple)
-                              )
-                            : _ActivityButton(
-                                icon: Icons.directions_walk,
-                                label: "STEPS",
-                                onTap: _unlockWithSteps,
-                            ),
                       ],
                     ),
                   ] else ...[

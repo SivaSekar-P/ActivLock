@@ -263,6 +263,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                   _imageSize!,
                   _poseService.rawPose!,
                   _rotation,
+                  _cameraDirection,
                 ),
               ),
             ),
@@ -365,8 +366,9 @@ class PosePainter extends CustomPainter {
   final Size imageSize;
   final Pose pose;
   final InputImageRotation rotation;
+  final CameraLensDirection cameraDirection;
 
-  PosePainter(this.imageSize, this.pose, this.rotation);
+  PosePainter(this.imageSize, this.pose, this.rotation, this.cameraDirection);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -431,8 +433,12 @@ class PosePainter extends CustomPainter {
     final double screenX = x * scaleX;
     final double screenY = y * scaleY;
 
-    // Mirror for selfie view
-    return Offset(screenSize.width - screenX, screenY);
+    // Mirror for selfie view, but NOT for rear camera
+    if (cameraDirection == CameraLensDirection.front) {
+      return Offset(screenSize.width - screenX, screenY);
+    } else {
+      return Offset(screenX, screenY);
+    }
   }
 
   @override

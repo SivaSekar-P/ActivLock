@@ -8,7 +8,7 @@ Built with a futuristic **Wakanda-inspired** theme 🙅🏿‍♂️💜.
 
 ## 📥 Download
 
-**[Download Latest APK (v1.0)](./app-release.apk)**
+**[Download Latest APK (v1.0)](https://raw.githubusercontent.com/SivaSekar-P/ActivLock/main/app-release.apk)**
 
 ## ✨ Features
 
