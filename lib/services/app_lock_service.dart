@@ -97,6 +97,8 @@ class AppLockService {
         usedExceptions: old.usedExceptions + 1,
         dailyUnlockLimit: old.dailyUnlockLimit,
         usedUnlocks: old.usedUnlocks,
+        stepGoal: old.stepGoal,
+        usedStepUnlocks: old.usedStepUnlocks,
         lastResetDate: DateTime.now(), // update date to today ensures no weird resets
       );
       await saveLockedApps(apps);
@@ -123,6 +125,36 @@ class AppLockService {
         usedExceptions: old.usedExceptions,
         dailyUnlockLimit: old.dailyUnlockLimit,
         usedUnlocks: old.usedUnlocks + 1, // Increment
+        stepGoal: old.stepGoal,
+        usedStepUnlocks: old.usedStepUnlocks,
+        lastResetDate: DateTime.now(),
+      );
+      await saveLockedApps(apps);
+    }
+  }
+
+  /// Increments the used step bypass count for a specific app
+  Future<void> incrementStepUnlock(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    final appsJson = prefs.getStringList('locked_apps_ui_list') ?? [];
+    List<LockedApp> apps = appsJson.map((str) => LockedApp.fromJson(jsonDecode(str))).toList();
+
+    int index = apps.indexWhere((a) => a.packageName == packageName);
+    if (index != -1) {
+      final old = apps[index];
+      apps[index] = LockedApp(
+        packageName: old.packageName,
+        appName: old.appName,
+        isLocked: old.isLocked,
+        pinCode: old.pinCode,
+        exerciseType: old.exerciseType,
+        targetReps: old.targetReps,
+        dailyExceptions: old.dailyExceptions,
+        usedExceptions: old.usedExceptions,
+        dailyUnlockLimit: old.dailyUnlockLimit,
+        usedUnlocks: old.usedUnlocks,
+        stepGoal: old.stepGoal,
+        usedStepUnlocks: old.usedStepUnlocks + 1, // Increment
         lastResetDate: DateTime.now(),
       );
       await saveLockedApps(apps);
@@ -155,6 +187,8 @@ class AppLockService {
           usedExceptions: 0, // RESET
           dailyUnlockLimit: app.dailyUnlockLimit,
           usedUnlocks: 0,    // RESET
+          stepGoal: app.stepGoal,
+          usedStepUnlocks: 0, // RESET
           lastResetDate: now,
         ));
         needsSave = true;

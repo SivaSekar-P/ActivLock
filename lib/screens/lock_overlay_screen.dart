@@ -26,6 +26,7 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
   Map<String, int> _stats = {'unlocks': 0, 'emergency': 0, 'maxUnlocks': 3, 'maxEmergency': 1};
   bool _canUnlock = false;
   bool _canEmergency = false;
+  bool _canStepUnlock = false;
   
   // App Config (defaults)
   String _pinCode = "";
@@ -75,7 +76,8 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
     final int limitE = currentApp.dailyExceptions;
     final canE = usedE < limitE;
     
-    final stepGoal = await ref.read(settingsServiceProvider).getDailyStepGoal();
+    final int usedSteps = currentApp.usedStepUnlocks;
+    final canStep = usedSteps < 1; // 1-time bypass
 
     if (mounted) {
       setState(() {
@@ -85,7 +87,8 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
         _stats['maxEmergency'] = limitE;
         _canUnlock = canU;
         _canEmergency = canE;
-        _dailyStepGoal = stepGoal;
+        _canStepUnlock = canStep;
+        _dailyStepGoal = currentApp.stepGoal;
       });
     }
   }
@@ -118,8 +121,8 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
   }
 
   void _unlockWithSteps() async {
-    if (!_canUnlock) {
-      _showSnack('Daily activity unlock limit reached!');
+    if (!_canStepUnlock) {
+      _showSnack('Step bypass already used today!');
       return;
     }
 
@@ -132,7 +135,7 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
 
         if (steps >= _dailyStepGoal) {
           if (widget.lockedPackageName != null) {
-              await ref.read(appLockServiceProvider).incrementUnlock(widget.lockedPackageName!);
+              await ref.read(appLockServiceProvider).incrementStepUnlock(widget.lockedPackageName!);
           }
           _performUnlock();
         } else {

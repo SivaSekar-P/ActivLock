@@ -28,6 +28,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   int _targetReps = 10;
   String _status = "Prepare";
   String _feedback = "";
+  CameraLensDirection _cameraDirection = CameraLensDirection.front;
 
   // For Painting
   Size? _imageSize;
@@ -45,11 +46,21 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   }
 
   Future<void> _loadTargetReps() async {
-    final reps = await ref.read(settingsServiceProvider).getRequiredReps();
-    if (mounted) {
-      setState(() {
-        _targetReps = reps;
-      });
+    final lockedApps = ref.read(lockedAppsProvider);
+    try {
+      final app = lockedApps.firstWhere((a) => a.packageName == widget.lockedPackageName);
+      if (mounted) {
+        setState(() {
+          _targetReps = app.targetReps;
+        });
+      }
+    } catch (_) {
+      final reps = await ref.read(settingsServiceProvider).getRequiredReps();
+      if (mounted) {
+        setState(() {
+          _targetReps = reps;
+        });
+      }
     }
   }
 
@@ -96,13 +107,13 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
 
   Future<void> _initializeCamera() async {
     final cameras = await availableCameras();
-    final frontCamera = cameras.firstWhere(
-          (camera) => camera.lensDirection == CameraLensDirection.front,
+    final selectedCamera = cameras.firstWhere(
+          (camera) => camera.lensDirection == _cameraDirection,
       orElse: () => cameras.first,
     );
 
     _controller = CameraController(
-      frontCamera,
+      selectedCamera,
       ResolutionPreset.medium,
       enableAudio: false,
       imageFormatGroup: Platform.isAndroid
@@ -116,6 +127,17 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     _rotation = InputImageRotation.rotation270deg;
     _controller!.startImageStream(_processCameraImage);
     setState(() {});
+  }
+
+  void _toggleCamera() {
+    setState(() {
+      _cameraDirection = _cameraDirection == CameraLensDirection.front
+          ? CameraLensDirection.back
+          : CameraLensDirection.front;
+    });
+    _controller?.dispose();
+    _controller = null;
+    _initializeCamera();
   }
 
   Future<void> _processCameraImage(CameraImage image) async {
@@ -316,6 +338,19 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
               child: IconButton(
                 icon: const Icon(Icons.close, color: Colors.white),
                 onPressed: () => Navigator.pop(context, false),
+              ),
+            ),
+          ),
+
+          // 6. FLIP CAMERA BUTTON
+          Positioned(
+            top: 40,
+            right: 20,
+            child: CircleAvatar(
+              backgroundColor: Colors.black54,
+              child: IconButton(
+                icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
+                onPressed: _toggleCamera,
               ),
             ),
           ),
