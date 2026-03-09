@@ -258,17 +258,25 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
             ),
           ),
 
-          // 2. SKELETON PAINTER
+          // 2. MINI CHARACTER (BOTTOM RIGHT)
           if (_poseService.rawPose != null && _imageSize != null)
-            SizedBox(
-              width: size.width,
-              height: size.height,
-              child: CustomPaint(
-                painter: PosePainter(
-                  _imageSize!,
-                  _poseService.rawPose!,
-                  _rotation,
-                  _cameraDirection,
+            Positioned(
+              bottom: 160,
+              right: 20,
+              child: GlassContainer(
+                blur: 30,
+                padding: const EdgeInsets.all(10),
+                borderRadius: 15,
+                child: SizedBox(
+                  width: 100,
+                  height: 140,
+                  child: CustomPaint(
+                    painter: MiniCharacterPainter(
+                      _imageSize!,
+                      _poseService.rawPose!,
+                      _cameraDirection,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -366,27 +374,99 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   }
 }
 
-// ---- CUSTOM PAINTER (NO HEAD, ONLY BODY) ----
-class PosePainter extends CustomPainter {
+// ---- CUSTOM PAINTER (MINI CHARACTER) ----
+class MiniCharacterPainter extends CustomPainter {
   final Size imageSize;
   final Pose pose;
-  final InputImageRotation rotation;
   final CameraLensDirection cameraDirection;
 
-  PosePainter(this.imageSize, this.pose, this.rotation, this.cameraDirection);
+  MiniCharacterPainter(this.imageSize, this.pose, this.cameraDirection);
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (pose.landmarks.isEmpty) return;
+
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.0
+      ..strokeWidth = 3.0
+      ..strokeCap = StrokeCap.round
       ..color = AppTheme.mySystemBlue;
 
     final jointPaint = Paint()
       ..style = PaintingStyle.fill
       ..color = Colors.white;
 
-    // Connections (EXCLUDING HEAD/FACE)
+    // For portrait Android, image width/height are swapped compared to sensor.
+    final double imageW = imageSize.height;
+
+    // Translate a raw landmark into a normalized base coordinate space first.
+    Offset getBasePoint(PoseLandmark landmark) {
+      if (cameraDirection == CameraLensDirection.front) {
+         return Offset(landmark.x, landmark.y);
+      } else {
+         return Offset(imageW - landmark.x, landmark.y);
+      }
+    }
+
+    // Now find bounding box in the base coordinate space
+    double minX = double.infinity;
+    double minY = double.infinity;
+    double maxX = double.negativeInfinity;
+    double maxY = double.negativeInfinity;
+    bool hasValid = false;
+
+    // Filter out face nodes (index < 11)
+    final validPoints = <PoseLandmarkType, Offset>{};
+    for (final entry in pose.landmarks.entries) {
+      final landmark = entry.value;
+      if (landmark.type.index > 10 && landmark.likelihood > 0.5) {
+        final pt = getBasePoint(landmark);
+        validPoints[entry.key] = pt;
+        if (pt.dx < minX) minX = pt.dx;
+        if (pt.dy < minY) minY = pt.dy;
+        if (pt.dx > maxX) maxX = pt.dx;
+        if (pt.dy > maxY) maxY = pt.dy;
+        hasValid = true;
+      }
+    }
+
+    // Include head calculation in bounding box
+    final leftS = pose.landmarks[PoseLandmarkType.leftShoulder];
+    final rightS = pose.landmarks[PoseLandmarkType.rightShoulder];
+    Offset? headBasePoint;
+    if (leftS != null && rightS != null && leftS.likelihood > 0.5 && rightS.likelihood > 0.5) {
+       final ptL = getBasePoint(leftS);
+       final ptR = getBasePoint(rightS);
+       final midX = (ptL.dx + ptR.dx) / 2;
+       final midY = (ptL.dy + ptR.dy) / 2;
+       final headLength = (ptL.dx - ptR.dx).abs() * 0.8;
+       headBasePoint = Offset(midX, midY - headLength - 10);
+       
+       if (headBasePoint.dx < minX) minX = headBasePoint.dx;
+       if (headBasePoint.dy < minY) minY = headBasePoint.dy;
+       if (headBasePoint.dx > maxX) maxX = headBasePoint.dx;
+       if (headBasePoint.dy > maxY) maxY = headBasePoint.dy;
+       hasValid = true;
+    }
+
+    if (!hasValid) return;
+
+    final boxW = maxX - minX;
+    final boxH = maxY - minY;
+    if (boxW <= 0 || boxH <= 0) return;
+
+    final padding = 16.0;
+    final scaleX = (size.width - padding) / boxW;
+    final scaleY = (size.height - padding) / boxH;
+    final scale = scaleX < scaleY ? scaleX : scaleY;
+
+    final offsetX = (size.width - boxW * scale) / 2 - minX * scale;
+    final offsetY = (size.height - boxH * scale) / 2 - minY * scale;
+
+    Offset translate(Offset basePt) {
+      return Offset(basePt.dx * scale + offsetX, basePt.dy * scale + offsetY);
+    }
+
     final connections = [
       [PoseLandmarkType.leftShoulder, PoseLandmarkType.rightShoulder],
       [PoseLandmarkType.leftShoulder, PoseLandmarkType.leftElbow],
@@ -403,53 +483,24 @@ class PosePainter extends CustomPainter {
     ];
 
     for (final connection in connections) {
-      final start = pose.landmarks[connection[0]]!;
-      final end = pose.landmarks[connection[1]]!;
-
-      // Draw line only if both points are likely visible
-      if (start.likelihood > 0.5 && end.likelihood > 0.5) {
-        canvas.drawLine(
-            _translatePoint(start.x, start.y, size),
-            _translatePoint(end.x, end.y, size),
-            paint
-        );
+      final p1 = validPoints[connection[0]];
+      final p2 = validPoints[connection[1]];
+      if (p1 != null && p2 != null) {
+         canvas.drawLine(translate(p1), translate(p2), paint);
       }
     }
 
-    // Draw Joints (Filter out index 0-10 which are face landmarks)
-    for (final landmark in pose.landmarks.values) {
-      if (landmark.type.index > 10 && landmark.likelihood > 0.5) {
-        final point = _translatePoint(landmark.x, landmark.y, size);
-        canvas.drawCircle(point, 5, jointPaint);
-      }
+    if (headBasePoint != null) {
+       canvas.drawCircle(translate(headBasePoint), 8 * scale.clamp(0.5, 2.0), paint);
     }
-  }
 
-  Offset _translatePoint(double x, double y, Size screenSize) {
-    // Android Front Camera is usually Rotated 270deg.
-    // So Width -> Height, Height -> Width
-    final double imageW = imageSize.height;
-    final double imageH = imageSize.width;
-
-    final double scaleX = screenSize.width / imageW;
-    final double scaleY = screenSize.height / imageH;
-
-    // Map Coordinates
-    final double screenX = x * scaleX;
-    final double screenY = y * scaleY;
-
-    // Explicit Front vs Back Camera Handling
-    if (cameraDirection == CameraLensDirection.front) {
-      // Front camera matches screenX without mirroring.
-      return Offset(screenX, screenY);
-    } else {
-      // Rear camera requires X mirroring.
-      return Offset(screenSize.width - screenX, screenY);
+    for (final pt in validPoints.values) {
+       canvas.drawCircle(translate(pt), 3 * scale.clamp(0.5, 2.0), jointPaint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant PosePainter oldDelegate) {
-    return oldDelegate.pose != pose || oldDelegate.imageSize != imageSize;
+  bool shouldRepaint(covariant MiniCharacterPainter oldDelegate) {
+    return oldDelegate.pose != pose;
   }
 }

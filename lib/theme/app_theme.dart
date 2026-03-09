@@ -117,7 +117,7 @@ class GlassContainer extends StatelessWidget {
     required this.child,
     this.borderRadius = 20.0,
     this.padding = const EdgeInsets.all(20.0),
-    this.blur = 15.0,
+    this.blur = 30.0,
     this.borderColor,
   });
 
@@ -127,12 +127,12 @@ class GlassContainer extends StatelessWidget {
     
     // Determine iOS glass properties based on theme
     final glassColor = isDark 
-        ? Colors.grey.shade900.withOpacity(0.5) 
+        ? Colors.white.withOpacity(0.08) 
         : Colors.white.withOpacity(0.5);
         
     final defaultBorderColor = isDark
-        ? Colors.white.withOpacity(0.1)
-        : Colors.black.withOpacity(0.05);
+        ? Colors.white.withOpacity(0.15)
+        : Colors.white.withOpacity(0.6);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
