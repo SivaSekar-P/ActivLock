@@ -6,9 +6,9 @@ ActivLock is a sophisticated, fitness-integrated app locker designed to combat d
 
 ---
 
-## 📥 Direct Download
+## 📥 Acquisition
 
-**[DOWNLOAD LATEST APK (v1.1)](https://raw.githubusercontent.com/SivaSekar-P/ActivLock/main/app-release.apk)**
+To install ActivLock, please download the **`ActivLock.apk`** file located in the root directory of this repository and install it on your Android device.
 
 ---
 
