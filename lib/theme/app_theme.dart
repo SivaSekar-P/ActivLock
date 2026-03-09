@@ -90,9 +90,9 @@ class AppBackground extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: isDark 
             ? [
-                const Color(0xFF0F0F1A), // deep dark blue/purple tint
+                const Color(0xFF1C1C1E), // iOS elevated dark surface base
+                const Color(0xFF0F1A24), // deep ocean/slate tint
                 const Color(0xFF000000), 
-                const Color(0xFF1A1A24),
               ] 
             : [
                 const Color(0xFFF2F2F7),

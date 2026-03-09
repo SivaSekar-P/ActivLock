@@ -39,10 +39,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     final hasPin = await ref.read(settingsServiceProvider).isPinSet();
-    final usage = ref.read(usageServiceProvider);
-    final dLimit = await usage.getMaxDailyUnlocks();
-    final eLimit = await usage.getMaxEmergencyUsage();
-    
     final settings = ref.read(settingsServiceProvider);
     final rReps = await settings.getRequiredReps();
     final dSteps = await settings.getDailyStepGoal();
@@ -50,8 +46,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (mounted) {
       setState(() {
         _isPinSet = hasPin;
-        _dailyUnlockLimit = dLimit;
-        _emergencyLimit = eLimit;
         _requiredReps = rReps;
         _dailyStepGoal = dSteps;
         _isLoading = false;
@@ -94,15 +88,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _handleSaveLimits() async {
-    final usage = ref.read(usageServiceProvider);
-    await usage.setMaxDailyUnlocks(_dailyUnlockLimit);
-    await usage.setMaxEmergencyUsage(_emergencyLimit);
-
     final settings = ref.read(settingsServiceProvider);
     await settings.setRequiredReps(_requiredReps);
     await settings.setDailyStepGoal(_dailyStepGoal);
 
-    _showSnack("Usage Limits & Goals Updated!");
+    _showSnack("Exercise Goals Updated!");
   }
 
   void _showSnack(String msg, {bool isError = false}) {
@@ -232,6 +222,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       selected: {themeMode},
                       onSelectionChanged: (Set<ThemeMode> newSelection) {
                         ref.read(themeProvider.notifier).setTheme(newSelection.first);
+                        _showSnack("Theme updated to ${newSelection.first.name.toUpperCase()}");
                       },
                       style: ButtonStyle(
                         backgroundColor: MaterialStateProperty.resolveWith((states) {
@@ -248,11 +239,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               
               const SizedBox(height: 24),
 
-              // --- SECTION 2: LIMITS ---
+              // --- SECTION 2: EXERCISE GOALS ---
               Padding(
                 padding: const EdgeInsets.only(left: 12, bottom: 8),
                 child: Text(
-                  "ACTIVITY LIMITS",
+                  "EXERCISE GOALS",
                   style: TextStyle(color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary, fontSize: 12, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -261,14 +252,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildLimitSlider("Max Activity Unlocks / Day", _dailyUnlockLimit, 1, 10, (val) {
-                      setState(() => _dailyUnlockLimit = val);
-                    }, isDark),
-                    const SizedBox(height: 10),
-                    _buildLimitSlider("Max Emergency Bypasses / Day", _emergencyLimit, 0, 5, (val) {
-                      setState(() => _emergencyLimit = val);
-                    }, isDark),
-                    const SizedBox(height: 10),
                     _buildLimitSlider("Required Exercise Reps", _requiredReps, 1, 50, (val) {
                       setState(() => _requiredReps = val);
                     }, isDark),
@@ -283,7 +266,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                        child: const Text("SAVE LIMITS", style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: const Text("SAVE GOALS", style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],

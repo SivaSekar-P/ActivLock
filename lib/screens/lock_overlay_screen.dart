@@ -20,11 +20,8 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
   final TextEditingController _pinController = TextEditingController();
   bool _showPin = false;
 
-  // Stats
-  Map<String, int> _stats = {'unlocks': 0, 'emergency': 0, 'maxUnlocks': 3, 'maxEmergency': 1};
-  bool _canUnlock = false;
-  bool _canEmergency = false;
-  bool _canStepUnlock = false;
+  // Stats and Status
+  bool _isLoading = true;
   
   // App Config (defaults)
   String _pinCode = "";
@@ -32,11 +29,9 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
   int _targetReps = 10;
   int _maxExceptions = 3;
 
-  @override
   void initState() {
     super.initState();
     _loadAppConfig();
-    _loadLimits();
   }
 
   void _loadAppConfig() {
@@ -50,38 +45,8 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
       _pinCode = currentApp.pinCode ?? "";
       _exerciseType = currentApp.exerciseType;
       _targetReps = currentApp.targetReps;
-      _maxExceptions = currentApp.dailyExceptions;
+      _isLoading = false;
     });
-  }
-
-  Future<void> _loadLimits() async {
-    // Reload app config to get fresh 'usedExceptions' & 'usedUnlocks'
-    final lockedApps = ref.read(lockedAppsProvider);
-    final currentApp = lockedApps.firstWhere(
-            (app) => app.packageName == widget.lockedPackageName,
-        orElse: () => LockedApp(packageName: "", appName: "")
-    );
-    
-    // Check Per-App Daily Unlock Limit
-    final int usedU = currentApp.usedUnlocks;
-    final int limitU = currentApp.dailyUnlockLimit;
-    final canU = usedU < limitU;
-    
-    // Check Per-App Emergency Limit
-    final int usedE = currentApp.usedExceptions;
-    final int limitE = currentApp.dailyExceptions;
-    final canE = usedE < limitE;
-
-    if (mounted) {
-      setState(() {
-        _stats['unlocks'] = usedU;
-        _stats['maxUnlocks'] = limitU;
-        _stats['emergency'] = usedE;
-        _stats['maxEmergency'] = limitE;
-        _canUnlock = canU;
-        _canEmergency = canE;
-      });
-    }
   }
 
   void _unlockWithPin() async {
@@ -97,25 +62,17 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
     }
 
     if (isValid) {
-      if (_canEmergency) {
-        // Increment Per-App Exception
-        if (widget.lockedPackageName != null) {
-           await ref.read(appLockServiceProvider).incrementException(widget.lockedPackageName!);
-        }
-        _performUnlock();
-      } else {
-        _showSnack('Emergency limit reached for this app!');
+      // Increment Per-App Exception Counter (for tracking only)
+      if (widget.lockedPackageName != null) {
+         await ref.read(appLockServiceProvider).incrementException(widget.lockedPackageName!);
       }
+      _performUnlock();
     } else {
       _showSnack('Invalid Access Code!');
     }
   }
 
   void _startActivity(ExerciseType type) async {
-    if (!_canUnlock) {
-      _showSnack('Daily activity unlock limit reached!');
-      return;
-    }
 
     final result = await Navigator.pushNamed(
         context,
@@ -183,46 +140,32 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Daily Unlocks: ${_stats['unlocks']}/${_stats['maxUnlocks']}',
-                      style: TextStyle(
-                        color: _canUnlock 
-                          ? (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87) 
-                          : AppTheme.mySystemRed,
-                        fontWeight: FontWeight.w500,
+                    if (_isLoading)
+                      const CircularProgressIndicator()
+                    else
+                      Column(
+                        children: [
+                          Text('CHOOSE CHALLENGE ($_targetReps REPS)', style: const TextStyle(color: Colors.grey, letterSpacing: 1.5)),
+                          const SizedBox(height: 15),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (_exerciseType == ExerciseType.squat)
+                                _ActivityButton(
+                                    icon: Icons.accessibility_new,
+                                    label: "SQUATS",
+                                    onTap: () => _startActivity(ExerciseType.squat)
+                                ),
+                              if (_exerciseType == ExerciseType.pushup)
+                                 _ActivityButton(
+                                    icon: Icons.fitness_center,
+                                    label: "PUSHUPS",
+                                    onTap: () => _startActivity(ExerciseType.pushup)
+                                ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 40),
-
-                  if (_canUnlock) ...[
-                    Text('CHOOSE CHALLENGE ($_targetReps REPS)', style: const TextStyle(color: Colors.grey, letterSpacing: 1.5)),
-                    const SizedBox(height: 15),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (_exerciseType == ExerciseType.squat)
-                          _ActivityButton(
-                              icon: Icons.accessibility_new,
-                              label: "SQUATS",
-                              onTap: () => _startActivity(ExerciseType.squat)
-                          ),
-                        if (_exerciseType == ExerciseType.pushup)
-                           _ActivityButton(
-                              icon: Icons.fitness_center,
-                              label: "PUSHUPS",
-                              onTap: () => _startActivity(ExerciseType.pushup)
-                          ),
-                      ],
-                    ),
-                  ] else ...[
-                    const Text(
-                      'DAILY LIMIT REACHED',
-                      style: TextStyle(color: AppTheme.mySystemRed, fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text('Come back tomorrow.', style: TextStyle(color: Colors.grey)),
-                  ],
 
                   const SizedBox(height: 40),
                   if (_showPin) ...[
@@ -256,15 +199,10 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
                   ] else ...[
                     TextButton(
                       onPressed: () {
-                        if (_canEmergency) {
-                          setState(() { _showPin = true; });
-                        } else {
-                          _showSnack('No emergency unlocks left!');
-                        }
+                        setState(() { _showPin = true; });
                       },
-                      child: Text(
-                          'EMERGENCY OVERRIDE (${_stats['emergency']}/${_stats['maxEmergency']})',
-                          style: const TextStyle(color: AppTheme.mySystemRed, fontWeight: FontWeight.w600)
+                      child: const Text('EMERGENCY OVERRIDE (PIN)',
+                          style: TextStyle(color: AppTheme.mySystemRed, fontWeight: FontWeight.w600)
                       ),
                     ),
                   ]

@@ -455,6 +455,19 @@ class MiniCharacterPainter extends CustomPainter {
     final boxH = maxY - minY;
     if (boxW <= 0 || boxH <= 0) return;
 
+    // Detect if the person is upside-down (hips physically above shoulders in raw sensor logic)
+    bool isInverted = false;
+    final lHip = pose.landmarks[PoseLandmarkType.leftHip];
+    final rHip = pose.landmarks[PoseLandmarkType.rightHip];
+    if (leftS != null && rightS != null && lHip != null && rHip != null) {
+       final midShoulderY = (getBasePoint(leftS).dy + getBasePoint(rightS).dy) / 2;
+       final midHipY = (getBasePoint(lHip).dy + getBasePoint(rHip).dy) / 2;
+       // If shoulder Y is greater than hip Y in base coordinates, it implies the top of the body is rendering at the bottom of the image
+       if (midShoulderY > midHipY) {
+         isInverted = true;
+       }
+    }
+
     final padding = 16.0;
     final scaleX = (size.width - padding) / boxW;
     final scaleY = (size.height - padding) / boxH;
@@ -464,7 +477,15 @@ class MiniCharacterPainter extends CustomPainter {
     final offsetY = (size.height - boxH * scale) / 2 - minY * scale;
 
     Offset translate(Offset basePt) {
-      return Offset(basePt.dx * scale + offsetX, basePt.dy * scale + offsetY);
+      double fX = basePt.dx * scale + offsetX;
+      double fY = basePt.dy * scale + offsetY;
+      
+      if (isInverted) {
+         // flip around the center of the canvas box
+         fX = size.width - fX;
+         fY = size.height - fY;
+      }
+      return Offset(fX, fY);
     }
 
     final connections = [

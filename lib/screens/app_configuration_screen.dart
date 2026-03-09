@@ -34,10 +34,6 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
   // Exercise Config
   ExerciseType _selectedExercise = ExerciseType.squat;
   int _targetReps = 15;
-  
-  // Limits Config
-  int _maxExceptions = 3;
-  int _dailyUnlockLimit = 10;
 
   @override
   void initState() {
@@ -54,14 +50,24 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
       _confirmPinController.text = app.pinCode ?? "";
       _selectedExercise = app.exerciseType;
       _targetReps = app.targetReps;
-      _maxExceptions = app.dailyExceptions;
-      _dailyUnlockLimit = app.dailyUnlockLimit;
     } catch (e) {
       // Defaults
     }
   }
 
   void _nextStep() {
+    if (_currentStep == 0) {
+      if (_pinController.text.length < 4) {
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("PIN must be at least 4 digits"), backgroundColor: Colors.red));
+         return;
+      }
+    }
+    if (_currentStep == 1) {
+      if (_pinController.text != _confirmPinController.text) {
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("PINs do not match!"), backgroundColor: Colors.red));
+         return;
+      }
+    }
     setState(() => _currentStep++);
   }
 
@@ -70,8 +76,8 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
   }
 
   void _finishSetup() {
-    // Validation
-    if (_currentStep == 0 || widget.isEditing) {
+    // Final Validation exactly for editing mode directly
+    if (widget.isEditing) {
        if (_pinController.text != _confirmPinController.text) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("PINs do not match!"), backgroundColor: Colors.red));
         return;
@@ -101,9 +107,9 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
       pinCode: _pinController.text,
       exerciseType: _selectedExercise,
       targetReps: _targetReps,
-      dailyExceptions: _maxExceptions,
+      dailyExceptions: 3, // Defaults since limits are removed from UI
       usedExceptions: existingUsedEx,
-      dailyUnlockLimit: _dailyUnlockLimit,
+      dailyUnlockLimit: 10,
       usedUnlocks: existingUsedUnlocks,
       lastResetDate: existingReset,
     );
@@ -114,7 +120,7 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
 
   Widget _buildStepContent(int stepIndex, Color textColor, Color subTextColor, Color inputFillColor, bool isDark) {
     switch (stepIndex) {
-      case 0: // PIN
+      case 0: // Set PIN
         return Column(
           children: [
             Text("Set Access PIN", style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)),
@@ -133,7 +139,14 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
             ),
-            const SizedBox(height: 10),
+          ],
+        );
+      case 1: // Confirm PIN
+        return Column(
+          children: [
+            Text("Confirm PIN", style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text("Re-enter the security code", style: TextStyle(color: subTextColor)),
+            const SizedBox(height: 20),
             TextField(
               controller: _confirmPinController,
               keyboardType: TextInputType.number,
@@ -149,7 +162,7 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
             ),
           ],
         );
-      case 1: // EXERCISE
+      case 2: // EXERCISE
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -178,34 +191,6 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
               activeColor: AppTheme.mySystemBlue,
               label: _targetReps.toString(),
               onChanged: (val) => setState(() => _targetReps = val.round()),
-            ),
-          ],
-        );
-      case 2: // LIMITS
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Usage Restrictions", style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)),
-            Text("Define daily allowances", style: TextStyle(color: subTextColor)),
-            const SizedBox(height: 20),
-            
-            Text("Max Unlocks per Day: $_dailyUnlockLimit", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
-            Slider(
-              value: _dailyUnlockLimit.toDouble(),
-              min: 1, max: 50, divisions: 49,
-              activeColor: AppTheme.mySystemBlue,
-              label: _dailyUnlockLimit.toString(),
-              onChanged: (val) => setState(() => _dailyUnlockLimit = val.round()),
-            ),
-            const SizedBox(height: 15),
-            
-            Text("Emergency Bypasses: $_maxExceptions", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
-            Slider(
-              value: _maxExceptions.toDouble(),
-              min: 0, max: 10, divisions: 10,
-              activeColor: AppTheme.mySystemRed,
-              label: _maxExceptions.toString(),
-              onChanged: (val) => setState(() => _maxExceptions = val.round()),
             ),
           ],
         );
@@ -283,19 +268,19 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
                   steps: [
                     Step(
                       title: Text("Set Access PIN", style: TextStyle(color: textColor)),
-                      subtitle: Text("Security Code", style: TextStyle(color: subTextColor)),
+                      subtitle: Text("Step 1", style: TextStyle(color: subTextColor)),
                       isActive: _currentStep >= 0,
                       content: _buildStepContent(0, textColor, subTextColor, inputFillColor, isDark),
                     ),
                     Step(
-                      title: Text("Scanning Protocol", style: TextStyle(color: textColor)),
-                      subtitle: Text("Activity Rules", style: TextStyle(color: subTextColor)),
+                      title: Text("Confirm PIN", style: TextStyle(color: textColor)),
+                      subtitle: Text("Step 2", style: TextStyle(color: subTextColor)),
                       isActive: _currentStep >= 1,
                       content: _buildStepContent(1, textColor, subTextColor, inputFillColor, isDark),
                     ),
                     Step(
-                      title: Text("Usage Restrictions", style: TextStyle(color: textColor)),
-                      subtitle: Text("Limits & Bypasses", style: TextStyle(color: subTextColor)),
+                      title: Text("Scanning Protocol", style: TextStyle(color: textColor)),
+                      subtitle: Text("Activity Rules", style: TextStyle(color: subTextColor)),
                       isActive: _currentStep >= 2,
                       content: _buildStepContent(2, textColor, subTextColor, inputFillColor, isDark),
                     ),
