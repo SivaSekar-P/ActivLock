@@ -6,6 +6,12 @@ ActivLock is a sophisticated, fitness-integrated app locker designed to combat d
 
 ---
 
+## 📥 Direct Download
+
+**[DOWNLOAD LATEST APK (v1.1)](https://github.com/SivaSekar-P/ActivLock/blob/main/app-release.apk?raw=true)**
+
+---
+
 ## 🌟 Why ActivLock?
 
 In a world of infinite scrolls and dopamine loops, ActivLock introduces a "Physical Paywall." You don't just lock apps; you earn the right to use them.
@@ -35,12 +41,7 @@ Using advanced Google ML Kit Pose Detection, ActivLock verifies your physical ac
 
 ---
 
-## 📥 Getting Started
-
-### Download
-**[Download Latest APK (v1.1)](https://github.com/SivaSekar-P/ActivLock/releases/latest)**
-
-### 🚀 Installation & Permissions
+## 🚀 Installation & Permissions
 
 ActivLock requires advanced permissions to maintain its security layer. Please follow these steps carefully:
 
