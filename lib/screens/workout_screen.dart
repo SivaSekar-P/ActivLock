@@ -25,6 +25,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   final PoseDetectionService _poseService = PoseDetectionService();
   bool _isProcessing = false;
   int _reps = 0;
+  int _targetReps = 10;
   String _status = "Prepare";
   String _feedback = "";
 
@@ -37,9 +38,19 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     super.initState();
     _poseService.setExerciseType(widget.exerciseType);
     _initializeCamera();
+    _loadTargetReps();
 
     // Show Instructions Dialog after build
     WidgetsBinding.instance.addPostFrameCallback((_) => _showInstructions());
+  }
+
+  Future<void> _loadTargetReps() async {
+    final reps = await ref.read(settingsServiceProvider).getRequiredReps();
+    if (mounted) {
+      setState(() {
+        _targetReps = reps;
+      });
+    }
   }
 
   void _showInstructions() {
@@ -131,7 +142,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
           _feedback = _poseService.feedback;
         });
 
-        if (_reps >= 10) {
+        if (_reps >= _targetReps) {
           _handleSuccess();
         }
       }
@@ -283,7 +294,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                 ),
 
                 Text(
-                  'REPS: $_reps / 10',
+                  'REPS: $_reps / $_targetReps',
                   style: const TextStyle(
                     fontSize: 48,
                     fontWeight: FontWeight.bold,

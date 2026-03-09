@@ -26,9 +26,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _hideNew = true;
   bool _hideConfirm = true;
 
-  // Limit Values
+  // Limit & Goal Values
   int _dailyUnlockLimit = 3;
   int _emergencyLimit = 1;
+  int _requiredReps = 10;
+  int _dailyStepGoal = 1000;
 
   @override
   void initState() {
@@ -41,12 +43,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final usage = ref.read(usageServiceProvider);
     final dLimit = await usage.getMaxDailyUnlocks();
     final eLimit = await usage.getMaxEmergencyUsage();
+    
+    final settings = ref.read(settingsServiceProvider);
+    final rReps = await settings.getRequiredReps();
+    final dSteps = await settings.getDailyStepGoal();
 
     if (mounted) {
       setState(() {
         _isPinSet = hasPin;
         _dailyUnlockLimit = dLimit;
         _emergencyLimit = eLimit;
+        _requiredReps = rReps;
+        _dailyStepGoal = dSteps;
         _isLoading = false;
       });
     }
@@ -90,7 +98,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final usage = ref.read(usageServiceProvider);
     await usage.setMaxDailyUnlocks(_dailyUnlockLimit);
     await usage.setMaxEmergencyUsage(_emergencyLimit);
-    _showSnack("Usage Limits Updated!");
+
+    final settings = ref.read(settingsServiceProvider);
+    await settings.setRequiredReps(_requiredReps);
+    await settings.setDailyStepGoal(_dailyStepGoal);
+
+    _showSnack("Usage Limits & Goals Updated!");
   }
 
   void _showSnack(String msg, {bool isError = false}) {
@@ -141,7 +154,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildLimitSlider(String label, int value, int min, int max, ValueChanged<int> onChanged, bool isDark) {
+  Widget _buildLimitSlider(String label, int value, int min, int max, ValueChanged<int> onChanged, bool isDark, {int? divisions}) {
     final textColor = isDark ? WakandaTheme.vibranium : Colors.black87;
     final subTextColor = isDark ? WakandaTheme.herbPurple : WakandaTheme.herbPurple; // Keep purple
 
@@ -159,7 +172,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           value: value.toDouble(),
           min: min.toDouble(),
           max: max.toDouble(),
-          divisions: max - min,
+          divisions: divisions ?? (max - min),
           activeColor: WakandaTheme.herbPurple,
           inactiveColor: isDark ? Colors.grey[800] : Colors.grey[300],
           onChanged: (val) => onChanged(val.toInt()),
@@ -232,6 +245,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _buildLimitSlider("Max Emergency Bypasses / Day", _emergencyLimit, 0, 5, (val) {
                 setState(() => _emergencyLimit = val);
               }, isDark),
+              const SizedBox(height: 10),
+              _buildLimitSlider("Required Exercise Reps", _requiredReps, 1, 50, (val) {
+                setState(() => _requiredReps = val);
+              }, isDark),
+              const SizedBox(height: 10),
+              _buildLimitSlider("Daily Step Goal", _dailyStepGoal, 1000, 20000, (val) {
+                setState(() => _dailyStepGoal = val);
+              }, isDark, divisions: (20000 - 1000) ~/ 500),
 
               const SizedBox(height: 10),
               SizedBox(

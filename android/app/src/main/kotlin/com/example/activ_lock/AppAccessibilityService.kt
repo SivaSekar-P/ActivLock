@@ -36,7 +36,7 @@ class AppAccessibilityService : AccessibilityService() {
     }
 
     private var lastLockTime: Long = 0
-    private val LOCK_TIMEOUT = 1000L // 1 second cooldown
+    private val LOCK_TIMEOUT = 2000L // 2 seconds cooldown
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
