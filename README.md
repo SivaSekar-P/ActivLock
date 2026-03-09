@@ -4,7 +4,7 @@
 
 ActivLock is a Flutter-based Android application that helps you break phone addiction by locking your distracting apps and requiring physical activity (Squats) to unlock them.
 
-Built with a futuristic **Wakanda-inspired** theme 🙅🏿‍♂️💜.
+Built with a sleek, professional **iOS Glassmorphism** theme 📱✨.
 
 ## 📥 Download
 

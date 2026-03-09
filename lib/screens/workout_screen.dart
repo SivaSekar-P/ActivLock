@@ -7,7 +7,7 @@ import 'dart:io';
 import '../models/exercise_type.dart';
 import '../services/pose_detection_service.dart';
 import '../services/usage_service.dart';
-import '../theme/wakanda_theme.dart';
+import '../theme/app_theme.dart';
 import '../providers/app_providers.dart';
 
 class WorkoutScreen extends ConsumerStatefulWidget {
@@ -69,11 +69,11 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: WakandaTheme.blackMetal,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: const BorderSide(color: WakandaTheme.herbPurple)),
+        backgroundColor: AppTheme.darkSurface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: const BorderSide(color: AppTheme.mySystemBlue)),
         title: Row(
           children: [
-            const Icon(Icons.info_outline, color: WakandaTheme.herbPurple),
+            const Icon(Icons.info_outline, color: AppTheme.mySystemBlue),
             const SizedBox(width: 10),
             Text("${widget.exerciseType.name.toUpperCase()} SETUP", style: const TextStyle(color: Colors.white, fontSize: 18)),
           ],
@@ -102,7 +102,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   }
 
   Widget _instructionStep(String text) {
-    return Text(text, style: const TextStyle(color: WakandaTheme.vibranium, fontSize: 14));
+    return Text(text, style: const TextStyle(color: Colors.white70, fontSize: 14));
   }
 
   Future<void> _initializeCamera() async {
@@ -185,8 +185,8 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: WakandaTheme.blackMetal,
-        title: const Text("UNLOCKED!", style: TextStyle(color: WakandaTheme.herbLight, fontWeight: FontWeight.bold)),
+        backgroundColor: AppTheme.darkSurface,
+        title: const Text("UNLOCKED!", style: TextStyle(color: AppTheme.mySystemBlue, fontWeight: FontWeight.bold)),
         content: const Text("Protocol complete. Access granted for 15 minutes.", style: TextStyle(color: Colors.white)),
         actions: [
           TextButton(
@@ -194,7 +194,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
               Navigator.pop(context);
               Navigator.pop(context, true);
             },
-            child: const Text("OPEN APP", style: TextStyle(color: WakandaTheme.vibranium)),
+            child: const Text("OPEN APP", style: TextStyle(color: AppTheme.mySystemBlue, fontWeight: FontWeight.bold)),
           )
         ],
       ),
@@ -278,7 +278,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                           colors: [
                             Colors.black.withOpacity(0.6),
                             Colors.transparent,
-                            WakandaTheme.blackMetal.withOpacity(0.9)
+                            Colors.black.withOpacity(0.9)
                           ],
                           stops: const [0.0, 0.6, 1.0]
                       )
@@ -309,7 +309,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                   _feedback.toUpperCase(),
                   style: TextStyle(
                       fontSize: 24,
-                      color: isVisible ? WakandaTheme.herbLight : Colors.red,
+                      color: isVisible ? AppTheme.mySystemBlue : AppTheme.mySystemRed,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 2.0
                   ),
@@ -321,8 +321,8 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                   style: const TextStyle(
                     fontSize: 48,
                     fontWeight: FontWeight.bold,
-                    color: WakandaTheme.vibranium,
-                    shadows: [Shadow(blurRadius: 10, color: WakandaTheme.herbPurple)],
+                    color: Colors.white,
+                    shadows: [Shadow(blurRadius: 10, color: AppTheme.mySystemBlue)],
                     fontFamily: 'Roboto',
                   ),
                 ),
@@ -375,11 +375,11 @@ class PosePainter extends CustomPainter {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4.0
-      ..color = WakandaTheme.herbPurple;
+      ..color = AppTheme.mySystemBlue;
 
     final jointPaint = Paint()
       ..style = PaintingStyle.fill
-      ..color = WakandaTheme.vibranium;
+      ..color = Colors.white;
 
     // Connections (EXCLUDING HEAD/FACE)
     final connections = [
@@ -433,10 +433,12 @@ class PosePainter extends CustomPainter {
     final double screenX = x * scaleX;
     final double screenY = y * scaleY;
 
-    // Mirror for selfie view, but NOT for rear camera
+    // Explicit Front vs Back Camera Handling
     if (cameraDirection == CameraLensDirection.front) {
-      return Offset(screenSize.width - screenX, screenY);
+      // The user indicated front camera was inverted when using `screenSize.width - screenX`.
+      return Offset(screenX, screenY);
     } else {
+      // The user indicated back camera was correct when using `screenX`.
       return Offset(screenX, screenY);
     }
   }

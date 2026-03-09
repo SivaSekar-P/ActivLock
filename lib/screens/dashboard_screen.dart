@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../theme/wakanda_theme.dart';
-import '../theme/wakanda_background.dart';
+import '../theme/app_theme.dart';
 import 'app_details_sheet.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -68,9 +67,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
     final themeMode = ref.watch(themeProvider);
     final isDark = themeMode == ThemeMode.dark || (themeMode == ThemeMode.system && MediaQuery.of(context).platformBrightness == Brightness.dark);
     
-    final textColor = isDark ? WakandaTheme.vibranium : Colors.black87;
-    final cardColor = isDark ? WakandaTheme.blackMetal : Colors.white;
-    final subTextColor = isDark ? Colors.white54 : Colors.grey[700];
+    final textColor = isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary;
+    final subTextColor = isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -89,40 +87,38 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: WakandaTheme.herbPurple,
+        backgroundColor: AppTheme.mySystemBlue,
         foregroundColor: Colors.white,
-        child: const Icon(Icons.shield),
+        child: const Icon(Icons.add),
         onPressed: () {
           Navigator.pushNamed(context, '/app_selection');
         },
       ),
-      body: WakandaBackground(
+      body: AppBackground(
         child: Column(
           children: [
             if (!_isAccessibilityEnabled)
               InkWell(
                 onTap: _openAccessibilitySettings,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  margin: const EdgeInsets.only(top: 100, left: 16, right: 16),
-                  decoration: BoxDecoration(
-                    color: WakandaTheme.beadRed.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.redAccent),
-                  ),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.warning_amber_rounded, color: Colors.white),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          "Protection Inactive!\nTap here to enable Accessibility Service.",
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 100, left: 16, right: 16),
+                  child: GlassContainer(
+                    blur: 20,
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                    borderColor: AppTheme.mySystemRed.withOpacity(0.5),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.warning_amber_rounded, color: AppTheme.mySystemRed, size: 28),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            "Protection Inactive!\nTap here to enable Accessibility Service.",
+                            style: TextStyle(color: AppTheme.mySystemRed, fontWeight: FontWeight.w600, fontSize: 14),
+                          ),
                         ),
-                      ),
-                      Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
-                    ],
+                        Icon(Icons.chevron_right, color: AppTheme.mySystemRed, size: 20),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -139,19 +135,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                         shape: BoxShape.circle,
                         border: Border.all(color: textColor.withOpacity(0.3)),
                       ),
-                      child: Icon(Icons.shield_outlined, size: 64, color: textColor.withOpacity(0.5)),
+                      child: Icon(Icons.lock_outline, size: 64, color: textColor.withOpacity(0.5)),
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'NO ACTIVE PROTOCOLS',
+                      'No Locked Apps',
                       style: TextStyle(
-                          fontFamily: 'Roboto',
-                          letterSpacing: 2.0,
-                          color: textColor.withOpacity(0.7)
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: textColor
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text('Initiate app lockdown via +', style: TextStyle(color: subTextColor)),
+                    Text('Tap the + button to lock an app', style: TextStyle(color: subTextColor)),
                   ],
                 ),
               )
@@ -160,28 +156,35 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                 itemCount: lockedApps.length,
                 itemBuilder: (context, index) {
                   final app = lockedApps[index];
-                  return Card(
-                    color: cardColor,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    shape: BeveledRectangleBorder(
-                      side: BorderSide(color: isDark ? WakandaTheme.vibranium.withOpacity(0.2) : Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: ListTile(
-                      leading: const Icon(Icons.lock, color: WakandaTheme.herbPurple),
-                      title: Text(
-                        app.appName.toUpperCase(),
-                        style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2, color: textColor),
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: GlassContainer(
+                      padding: EdgeInsets.zero,
+                      blur: 15,
+                      child: ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.mySystemBlue.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.lock, color: AppTheme.mySystemBlue, size: 20),
+                        ),
+                        title: Text(
+                          app.appName,
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: textColor),
+                        ),
+                        subtitle: Text(app.packageName, style: TextStyle(fontSize: 12, color: subTextColor)),
+                        trailing: Icon(Icons.chevron_right, color: subTextColor),
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            isScrollControlled: true,
+                            builder: (context) => AppDetailsSheet(app: app),
+                          );
+                        },
                       ),
-                      subtitle: Text(app.packageName, style: TextStyle(fontSize: 10, color: subTextColor)),
-                      trailing: Icon(Icons.more_vert, color: subTextColor),
-                      onTap: () {
-                        showModalBottomSheet(
-                          context: context,
-                          backgroundColor: Colors.transparent,
-                          builder: (context) => AppDetailsSheet(app: app),
-                        );
-                      },
                     ),
                   );
                 },

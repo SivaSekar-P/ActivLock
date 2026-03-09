@@ -4,8 +4,7 @@ import 'package:installed_apps/installed_apps.dart';
 import 'package:installed_apps/app_info.dart';
 import '../models/locked_app.dart';
 import '../providers/app_providers.dart';
-import '../theme/wakanda_theme.dart';
-import '../theme/wakanda_background.dart';
+import '../theme/app_theme.dart';
 import 'app_configuration_screen.dart';
 
 class AppSelectionScreen extends ConsumerStatefulWidget {
@@ -55,9 +54,9 @@ class _AppSelectionScreenState extends ConsumerState<AppSelectionScreen> {
   Widget build(BuildContext context) {
     final lockedApps = ref.watch(lockedAppsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? WakandaTheme.vibranium : Colors.black87;
-    final cardColor = isDark ? WakandaTheme.onyx : Colors.white;
-    final borderColor = isDark ? WakandaTheme.herbPurple : Colors.deepPurple;
+    final textColor = isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary;
+    final subTextColor = isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary;
+    final borderColor = AppTheme.mySystemBlue;
 
     return Scaffold(
       extendBodyBehindAppBar: true, 
@@ -67,44 +66,43 @@ class _AppSelectionScreenState extends ConsumerState<AppSelectionScreen> {
         elevation: 0,
         iconTheme: IconThemeData(color: textColor),
       ),
-      body: WakandaBackground( // Use Wakanda Background
+      body: AppBackground( // Use App Background
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: WakandaTheme.herbPurple))
+            ? const Center(child: CircularProgressIndicator(color: AppTheme.mySystemBlue))
             : ListView.builder(
-          padding: const EdgeInsets.only(top: 100, left: 8, right: 8, bottom: 8), // Padding for transparent appbar?
+          padding: const EdgeInsets.only(top: 100, left: 16, right: 16, bottom: 16), 
           itemCount: _installedApps.length,
           itemBuilder: (context, index) {
             final app = _installedApps[index];
             final isLocked = lockedApps.any((a) => a.packageName == app.packageName);
             final displayName = app.name;
 
-            return Card(
-              color: cardColor,
-              margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-              shape: BeveledRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: BorderSide(
-                    color: isLocked ? borderColor : Colors.transparent,
-                    width: 0.5
-                ),
-              ),
-              child: ListTile(
-                leading: app.icon != null
-                    ? Image.memory(app.icon!, width: 40, height: 40)
-                    : const Icon(Icons.android, color: WakandaTheme.vibranium),
-                title: Text(
-                    displayName,
-                    style: TextStyle(
-                      color: isLocked ? borderColor : textColor,
-                      fontWeight: isLocked ? FontWeight.bold : FontWeight.normal,
-                    )
-                ),
-                subtitle: Text(app.packageName, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                trailing: Switch(
-                  value: isLocked,
-                  activeColor: WakandaTheme.herbPurple,
-                  inactiveThumbColor: Colors.grey,
-                  inactiveTrackColor: Colors.grey[800],
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: GlassContainer(
+                blur: 15,
+                padding: const EdgeInsets.all(4),
+                borderColor: isLocked ? borderColor : (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05)),
+                child: ListTile(
+                  leading: app.icon != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.memory(app.icon!, width: 44, height: 44),
+                        )
+                      : const Icon(Icons.android, color: AppTheme.mySystemBlue, size: 44),
+                  title: Text(
+                      displayName,
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: isLocked ? FontWeight.w600 : FontWeight.normal,
+                      )
+                  ),
+                  subtitle: Text(app.packageName, style: TextStyle(fontSize: 12, color: subTextColor)),
+                  trailing: Switch(
+                    value: isLocked,
+                    activeColor: AppTheme.mySystemBlue,
+                    inactiveThumbColor: Colors.grey,
+                    inactiveTrackColor: isDark ? Colors.grey[800] : Colors.grey[300],
                   onChanged: (val) {
                     if (val) {
                       Navigator.push(
@@ -122,7 +120,8 @@ class _AppSelectionScreenState extends ConsumerState<AppSelectionScreen> {
                   },
                 ),
               ),
-            );
+            ),
+          );
           },
         ),
       ),

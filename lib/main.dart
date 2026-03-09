@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'theme/wakanda_theme.dart';
-import 'theme/wakanda_theme.dart';
+import 'theme/app_theme.dart';
 import 'models/exercise_type.dart';
 import 'services/pose_detection_service.dart';
 import 'screens/dashboard_screen.dart';
@@ -74,8 +73,8 @@ class _ActivLockAppState extends ConsumerState<ActivLockApp> {
       title: 'ActivLock',
       debugShowCheckedModeBanner: false,
       themeMode: themeMode,
-      theme: WakandaTheme.lightTheme,
-      darkTheme: WakandaTheme.themeData, // Original Wakanda Dark
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
       navigatorKey: navigatorKey,
       initialRoute: '/',
       onGenerateRoute: (settings) {

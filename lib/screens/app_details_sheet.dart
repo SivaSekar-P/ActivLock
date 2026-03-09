@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/locked_app.dart';
 import '../providers/app_providers.dart';
-import '../theme/wakanda_theme.dart';
+import '../theme/app_theme.dart';
 import 'app_configuration_screen.dart';
 
 class AppDetailsSheet extends ConsumerWidget {
@@ -15,8 +15,8 @@ class AppDetailsSheet extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black87;
     final subTextColor = isDark ? Colors.white54 : Colors.black54;
-    final cardColor = isDark ? WakandaTheme.onyx : Colors.grey.shade200;
-    final sheetColor = isDark ? WakandaTheme.blackMetal : Colors.white;
+    final cardColor = isDark ? AppTheme.darkSurface : AppTheme.lightSurface;
+    final sheetColor = isDark ? AppTheme.darkBackground : AppTheme.lightBackground;
 
     final remainingUnlocks = app.dailyUnlockLimit - app.usedUnlocks;
     final remainingExceptions = app.dailyExceptions - app.usedExceptions; // Optional to show?
@@ -26,7 +26,7 @@ class AppDetailsSheet extends ConsumerWidget {
       decoration: BoxDecoration(
         color: sheetColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        border: const Border(top: BorderSide(color: WakandaTheme.herbPurple, width: 2)),
+        border: Border(top: BorderSide(color: AppTheme.mySystemBlue, width: 2)),
       ),
       child: SafeArea(
         child: SingleChildScrollView( // Changed to ScrollView in case of small screens
@@ -37,7 +37,7 @@ class AppDetailsSheet extends ConsumerWidget {
               Row(
                 children: [
                    // ... (Header content remains same, just ensuring context)
-                   const Icon(Icons.security, color: WakandaTheme.herbLight, size: 30),
+                   const Icon(Icons.security, color: AppTheme.mySystemBlue, size: 30),
                    const SizedBox(width: 15),
                    Expanded(
                      child: Text(
@@ -169,8 +169,8 @@ class AppDetailsSheet extends ConsumerWidget {
       contentPadding: EdgeInsets.zero,
       leading: Container(
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: WakandaTheme.herbPurple.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-        child: Icon(icon, color: WakandaTheme.herbPurple, size: 20),
+        decoration: BoxDecoration(color: AppTheme.mySystemBlue.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+        child: Icon(icon, color: AppTheme.mySystemBlue, size: 20),
       ),
       title: Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
       subtitle: Text(subtitle, style: TextStyle(color: subTextColor, fontSize: 12)),
@@ -207,7 +207,7 @@ class _StatCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: WakandaTheme.herbPurple, size: 20),
+            Icon(icon, color: AppTheme.mySystemBlue, size: 20),
             const SizedBox(height: 8),
             Text(value, style: TextStyle(color: textColor, fontSize: 22, fontWeight: FontWeight.bold)),
             Text(label, style: const TextStyle(color: Colors.grey, fontSize: 10)),

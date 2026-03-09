@@ -4,8 +4,7 @@ import 'dart:typed_data';
 import '../models/locked_app.dart';
 import '../models/exercise_type.dart';
 import '../providers/app_providers.dart';
-import '../theme/wakanda_theme.dart';
-import '../theme/wakanda_background.dart';
+import '../theme/app_theme.dart';
 
 class AppConfigurationScreen extends ConsumerStatefulWidget {
   final String packageName;
@@ -128,10 +127,10 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
               style: TextStyle(color: textColor, letterSpacing: 5),
               decoration: InputDecoration(
                 labelText: "Enter 4-digit PIN",
-                labelStyle: const TextStyle(color: WakandaTheme.herbLight),
+                labelStyle: TextStyle(color: subTextColor),
                 filled: true,
                 fillColor: inputFillColor,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
             ),
             const SizedBox(height: 10),
@@ -142,10 +141,10 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
               style: TextStyle(color: textColor, letterSpacing: 5),
               decoration: InputDecoration(
                 labelText: "Confirm PIN",
-                labelStyle: const TextStyle(color: WakandaTheme.herbLight),
+                labelStyle: TextStyle(color: subTextColor),
                 filled: true,
                 fillColor: inputFillColor,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
             ),
           ],
@@ -163,7 +162,7 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<ExerciseType>(
                   value: _selectedExercise,
-                  dropdownColor: isDark ? WakandaTheme.onyx : Colors.white,
+                  dropdownColor: isDark ? AppTheme.darkSurface : AppTheme.lightSurface,
                   style: TextStyle(color: textColor),
                   isExpanded: true,
                   onChanged: (val) => setState(() => _selectedExercise = val!),
@@ -176,7 +175,7 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
             Slider(
               value: _targetReps.toDouble(),
               min: 5, max: 50, divisions: 9,
-              activeColor: WakandaTheme.herbPurple,
+              activeColor: AppTheme.mySystemBlue,
               label: _targetReps.toString(),
               onChanged: (val) => setState(() => _targetReps = val.round()),
             ),
@@ -194,7 +193,7 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
             Slider(
               value: _dailyUnlockLimit.toDouble(),
               min: 1, max: 50, divisions: 49,
-              activeColor: WakandaTheme.vibranium,
+              activeColor: AppTheme.mySystemBlue,
               label: _dailyUnlockLimit.toString(),
               onChanged: (val) => setState(() => _dailyUnlockLimit = val.round()),
             ),
@@ -204,7 +203,7 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
             Slider(
               value: _maxExceptions.toDouble(),
               min: 0, max: 10, divisions: 10,
-              activeColor: WakandaTheme.beadRed,
+              activeColor: AppTheme.mySystemRed,
               label: _maxExceptions.toString(),
               onChanged: (val) => setState(() => _maxExceptions = val.round()),
             ),
@@ -231,22 +230,25 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
         elevation: 0,
         iconTheme: IconThemeData(color: textColor),
       ),
-      body: WakandaBackground(
+      body: AppBackground(
         child: SafeArea(
           child: widget.isEditing
               ? Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
                     children: [
-                      _buildStepContent(_currentStep, textColor, subTextColor, inputFillColor, isDark),
+                      GlassContainer(
+                        padding: const EdgeInsets.all(20),
+                        child: _buildStepContent(_currentStep, textColor, subTextColor, inputFillColor, isDark)
+                      ),
                       const Spacer(),
                       SizedBox(
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: WakandaTheme.herbPurple, foregroundColor: Colors.white),
+                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.mySystemBlue, foregroundColor: Colors.white),
                           onPressed: _finishSetup,
-                          child: const Text("SAVE CHANGES"),
+                          child: const Text("SAVE CHANGES", style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ),
                     ],
@@ -263,15 +265,15 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
                       child: Row(
                         children: [
                           ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: WakandaTheme.herbPurple, foregroundColor: Colors.white),
+                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.mySystemBlue, foregroundColor: Colors.white),
                             onPressed: details.onStepContinue,
-                            child: Text(_currentStep == 2 ? "ACTIVATE" : "NEXT"),
+                            child: Text(_currentStep == 2 ? "ACTIVATE" : "NEXT", style: const TextStyle(fontWeight: FontWeight.bold)),
                           ),
                           if (_currentStep > 0) ...[
                             const SizedBox(width: 10),
                             TextButton(
                               onPressed: details.onStepCancel,
-                              child: Text("BACK", style: TextStyle(color: subTextColor)),
+                              child: Text("BACK", style: TextStyle(color: subTextColor, fontWeight: FontWeight.bold)),
                             ),
                           ],
                         ],

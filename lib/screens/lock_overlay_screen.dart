@@ -6,7 +6,7 @@ import '../services/usage_service.dart';
 import '../services/pose_detection_service.dart'; // Keep for other refs if needed, but ExerciseType is now in model
 import '../models/locked_app.dart';
 import '../models/exercise_type.dart';
-import '../theme/wakanda_theme.dart';
+import '../theme/app_theme.dart';
 
 class LockOverlayScreen extends ConsumerStatefulWidget {
   final String? lockedPackageName;
@@ -145,7 +145,7 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
   void _showSnack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg, style: const TextStyle(color: Colors.white)),
-      backgroundColor: WakandaTheme.beadRed,
+      backgroundColor: AppTheme.mySystemRed,
     ));
   }
 
@@ -158,38 +158,42 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
         SystemChannels.platform.invokeMethod('SystemNavigator.pop');
       },
       child: Scaffold(
-        backgroundColor: WakandaTheme.onyx.withOpacity(0.98),
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [WakandaTheme.blackMetal, WakandaTheme.onyx],
-            ),
-          ),
+        extendBodyBehindAppBar: true,
+        backgroundColor: Colors.transparent,
+        body: AppBackground(
           child: Center(
             child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.lock_outline, size: 60, color: WakandaTheme.vibranium),
-                  const SizedBox(height: 20),
-                  Text(
-                    'RESTRICTED ACCESS',
-                    style: TextStyle(
-                      fontFamily: 'Roboto',
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 3.0,
-                      color: WakandaTheme.vibranium,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: GlassContainer(
+                blur: 30,
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.lock_outline, size: 64, color: AppTheme.mySystemBlue),
+                    const SizedBox(height: 24),
+                    Text(
+                      'RESTRICTED ACCESS',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                        color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Daily Unlocks: ${_stats['unlocks']}/${_stats['maxUnlocks']}',
-                    style: TextStyle(color: _canUnlock ? WakandaTheme.herbLight : WakandaTheme.beadRed),
-                  ),
-                  const SizedBox(height: 40),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Daily Unlocks: ${_stats['unlocks']}/${_stats['maxUnlocks']}',
+                      style: TextStyle(
+                        color: _canUnlock 
+                          ? (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87) 
+                          : AppTheme.mySystemRed,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
 
                   if (_canUnlock) ...[
                     Text('CHOOSE CHALLENGE ($_targetReps REPS)', style: const TextStyle(color: Colors.grey, letterSpacing: 1.5)),
@@ -214,8 +218,9 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
                   ] else ...[
                     const Text(
                       'DAILY LIMIT REACHED',
-                      style: TextStyle(color: WakandaTheme.beadRed, fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: AppTheme.mySystemRed, fontSize: 18, fontWeight: FontWeight.bold),
                     ),
+                    const SizedBox(height: 8),
                     const Text('Come back tomorrow.', style: TextStyle(color: Colors.grey)),
                   ],
 
@@ -227,20 +232,26 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
                         controller: _pinController,
                         obscureText: true,
                         keyboardType: TextInputType.number,
-                        style: const TextStyle(color: WakandaTheme.vibranium, letterSpacing: 5),
+                        style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary, letterSpacing: 5),
                         textAlign: TextAlign.center,
                         decoration: const InputDecoration(
                           hintText: 'PIN',
                           hintStyle: TextStyle(color: Colors.grey),
                           enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.mySystemBlue, width: 2)),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 20),
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: WakandaTheme.beadRed),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.mySystemBlue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                       onPressed: _unlockWithPin,
-                      child: const Text('UNLOCK'),
+                      child: const Text('UNLOCK', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ] else ...[
                     TextButton(
@@ -253,7 +264,7 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
                       },
                       child: Text(
                           'EMERGENCY OVERRIDE (${_stats['emergency']}/${_stats['maxEmergency']})',
-                          style: const TextStyle(color: WakandaTheme.vibraniumDark, letterSpacing: 1.2)
+                          style: const TextStyle(color: AppTheme.mySystemRed, fontWeight: FontWeight.w600)
                       ),
                     ),
                   ]
@@ -262,6 +273,7 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }
@@ -278,17 +290,20 @@ class _ActivityButton extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(15),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: WakandaTheme.blackMetal,
-          border: Border.all(color: WakandaTheme.herbPurple),
-          borderRadius: BorderRadius.circular(10),
+          color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkSurface : AppTheme.lightSurface,
+          border: Border.all(color: AppTheme.mySystemBlue.withOpacity(0.3)),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           children: [
-            Icon(icon, color: WakandaTheme.vibranium, size: 30),
-            const SizedBox(height: 5),
-            Text(label, style: const TextStyle(color: WakandaTheme.vibranium, fontWeight: FontWeight.bold)),
+            Icon(icon, color: AppTheme.mySystemBlue, size: 32),
+            const SizedBox(height: 8),
+            Text(label, style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary, 
+              fontWeight: FontWeight.bold
+            )),
           ],
         ),
       ),

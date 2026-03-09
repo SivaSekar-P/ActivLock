@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
-import '../theme/wakanda_theme.dart';
-import '../theme/wakanda_background.dart';
+import '../theme/app_theme.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -110,7 +109,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: isError ? WakandaTheme.beadRed : WakandaTheme.herbPurple,
+        backgroundColor: isError ? AppTheme.mySystemRed : AppTheme.mySystemBlue,
       ),
     );
   }
@@ -130,7 +129,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(color: WakandaTheme.vibraniumDark, fontSize: 12, letterSpacing: 1.2),
+          style: TextStyle(color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary, fontSize: 12, letterSpacing: 1.2),
         ),
         const SizedBox(height: 8),
         TextField(
@@ -142,7 +141,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             filled: true,
             fillColor: fillColor,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: WakandaTheme.herbPurple)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.mySystemBlue)),
             suffixIcon: IconButton(
               icon: Icon(obscure ? Icons.visibility : Icons.visibility_off, color: Colors.grey),
               onPressed: onToggle,
@@ -155,8 +154,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildLimitSlider(String label, int value, int min, int max, ValueChanged<int> onChanged, bool isDark, {int? divisions}) {
-    final textColor = isDark ? WakandaTheme.vibranium : Colors.black87;
-    final subTextColor = isDark ? WakandaTheme.herbPurple : WakandaTheme.herbPurple; // Keep purple
+    final textColor = isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary;
+    final subTextColor = AppTheme.mySystemBlue;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,7 +172,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           min: min.toDouble(),
           max: max.toDouble(),
           divisions: divisions ?? (max - min),
-          activeColor: WakandaTheme.herbPurple,
+          activeColor: AppTheme.mySystemBlue,
           inactiveColor: isDark ? Colors.grey[800] : Colors.grey[300],
           onChanged: (val) => onChanged(val.toInt()),
         ),
@@ -190,80 +189,104 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final textColor = isDark ? WakandaTheme.vibranium : Colors.black87;
+    final textColor = isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text("SETTINGS PROTOCOL", style: TextStyle(color: textColor)),
-        backgroundColor: Colors.transparent, // WakandaTheme handles it based on theme
+        title: Text("SETTINGS", style: TextStyle(color: textColor)),
+        backgroundColor: Colors.transparent,
         iconTheme: IconThemeData(color: textColor),
       ),
-      body: WakandaBackground(
+      body: AppBackground(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(top: 100, left: 20, right: 20, bottom: 20), // Added top padding
+          padding: const EdgeInsets.only(top: 100, left: 16, right: 16, bottom: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // --- SECTION 1: APPEARANCE ---
-              const Text(
-                "VISUAL INTERFACE",
-                style: TextStyle(color: WakandaTheme.herbPurple, fontWeight: FontWeight.bold, letterSpacing: 1.2, fontSize: 18),
+              Padding(
+                padding: const EdgeInsets.only(left: 12, bottom: 8),
+                child: Text(
+                  "VISUAL INTERFACE",
+                  style: TextStyle(color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
               ),
-              const SizedBox(height: 10),
-              SwitchListTile(
-                title: Text("Dark Mode", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
-                subtitle: Text("Toggle Wakanda interface theme", style: TextStyle(color: isDark ? Colors.grey : Colors.grey.shade600)),
-                value: isDark,
-                activeColor: WakandaTheme.herbPurple,
-                onChanged: (val) {
-                  ref.read(themeProvider.notifier).toggleTheme(val);
-                },
+              GlassContainer(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("App Theme", style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.w500)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SegmentedButton<ThemeMode>(
+                      segments: const [
+                        ButtonSegment(value: ThemeMode.system, label: Text("System"), icon: Icon(Icons.brightness_auto)),
+                        ButtonSegment(value: ThemeMode.light, label: Text("Light"), icon: Icon(Icons.light_mode)),
+                        ButtonSegment(value: ThemeMode.dark, label: Text("Dark"), icon: Icon(Icons.dark_mode)),
+                      ],
+                      selected: {themeMode},
+                      onSelectionChanged: (Set<ThemeMode> newSelection) {
+                        ref.read(themeProvider.notifier).setTheme(newSelection.first);
+                      },
+                      style: ButtonStyle(
+                        backgroundColor: MaterialStateProperty.resolveWith((states) {
+                          if (states.contains(MaterialState.selected)) {
+                            return AppTheme.mySystemBlue.withOpacity(0.2);
+                          }
+                          return Colors.transparent;
+                        }),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Divider(color: Colors.grey),
-              ),
+              const SizedBox(height: 24),
 
               // --- SECTION 2: LIMITS ---
-              const Text(
-                "ACTIVITY LIMITS",
-                style: TextStyle(color: WakandaTheme.herbPurple, fontWeight: FontWeight.bold, letterSpacing: 1.2, fontSize: 18),
+              Padding(
+                padding: const EdgeInsets.only(left: 12, bottom: 8),
+                child: Text(
+                  "ACTIVITY LIMITS",
+                  style: TextStyle(color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                "Define your daily discipline restrictions.",
-                style: TextStyle(color: textColor),
-              ),
-              const SizedBox(height: 20),
-
-              _buildLimitSlider("Max Activity Unlocks / Day", _dailyUnlockLimit, 1, 10, (val) {
-                setState(() => _dailyUnlockLimit = val);
-              }, isDark),
-              const SizedBox(height: 10),
-              _buildLimitSlider("Max Emergency Bypasses / Day", _emergencyLimit, 0, 5, (val) {
-                setState(() => _emergencyLimit = val);
-              }, isDark),
-              const SizedBox(height: 10),
-              _buildLimitSlider("Required Exercise Reps", _requiredReps, 1, 50, (val) {
-                setState(() => _requiredReps = val);
-              }, isDark),
-              const SizedBox(height: 10),
-              _buildLimitSlider("Daily Step Goal", _dailyStepGoal, 1000, 20000, (val) {
-                setState(() => _dailyStepGoal = val);
-              }, isDark, divisions: (20000 - 1000) ~/ 500),
-
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: _handleSaveLimits,
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: WakandaTheme.herbPurple),
-                    foregroundColor: WakandaTheme.herbPurple,
-                  ),
-                  child: const Text("SAVE LIMITS"),
+              GlassContainer(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildLimitSlider("Max Activity Unlocks / Day", _dailyUnlockLimit, 1, 10, (val) {
+                      setState(() => _dailyUnlockLimit = val);
+                    }, isDark),
+                    const SizedBox(height: 10),
+                    _buildLimitSlider("Max Emergency Bypasses / Day", _emergencyLimit, 0, 5, (val) {
+                      setState(() => _emergencyLimit = val);
+                    }, isDark),
+                    const SizedBox(height: 10),
+                    _buildLimitSlider("Required Exercise Reps", _requiredReps, 1, 50, (val) {
+                      setState(() => _requiredReps = val);
+                    }, isDark),
+                    
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _handleSaveLimits,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.mySystemBlue,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: const Text("SAVE LIMITS", style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
