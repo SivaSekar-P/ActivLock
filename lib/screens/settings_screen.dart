@@ -25,11 +25,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _hideNew = true;
   bool _hideConfirm = true;
 
-  // Limit & Goal Values
-  int _dailyUnlockLimit = 3;
-  int _emergencyLimit = 1;
-  int _requiredReps = 10;
-  int _dailyStepGoal = 1000;
 
   @override
   void initState() {
@@ -39,15 +34,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     final hasPin = await ref.read(settingsServiceProvider).isPinSet();
-    final settings = ref.read(settingsServiceProvider);
-    final rReps = await settings.getRequiredReps();
-    final dSteps = await settings.getDailyStepGoal();
 
     if (mounted) {
       setState(() {
         _isPinSet = hasPin;
-        _requiredReps = rReps;
-        _dailyStepGoal = dSteps;
         _isLoading = false;
       });
     }
@@ -85,14 +75,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _confirmPinController.clear();
       });
     }
-  }
-
-  void _handleSaveLimits() async {
-    final settings = ref.read(settingsServiceProvider);
-    await settings.setRequiredReps(_requiredReps);
-    await settings.setDailyStepGoal(_dailyStepGoal);
-
-    _showSnack("Exercise Goals Updated!");
   }
 
   void _showSnack(String msg, {bool isError = false}) {
@@ -139,33 +121,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         const SizedBox(height: 20),
-      ],
-    );
-  }
-
-  Widget _buildLimitSlider(String label, int value, int min, int max, ValueChanged<int> onChanged, bool isDark, {int? divisions}) {
-    final textColor = isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary;
-    final subTextColor = AppTheme.mySystemBlue;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
-            Text("$value", style: TextStyle(color: subTextColor, fontSize: 18, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        Slider(
-          value: value.toDouble(),
-          min: min.toDouble(),
-          max: max.toDouble(),
-          divisions: divisions ?? (max - min),
-          activeColor: AppTheme.mySystemBlue,
-          inactiveColor: isDark ? Colors.grey[800] : Colors.grey[300],
-          onChanged: (val) => onChanged(val.toInt()),
-        ),
       ],
     );
   }
@@ -231,42 +186,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           }
                           return Colors.transparent;
                         }),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 24),
-
-              // --- SECTION 2: EXERCISE GOALS ---
-              Padding(
-                padding: const EdgeInsets.only(left: 12, bottom: 8),
-                child: Text(
-                  "EXERCISE GOALS",
-                  style: TextStyle(color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary, fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-              ),
-              GlassContainer(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildLimitSlider("Required Exercise Reps", _requiredReps, 1, 50, (val) {
-                      setState(() => _requiredReps = val);
-                    }, isDark),
-                    
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: _handleSaveLimits,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppTheme.mySystemBlue,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: const Text("SAVE GOALS", style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],

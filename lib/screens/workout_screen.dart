@@ -431,16 +431,10 @@ class MiniCharacterPainter extends CustomPainter {
     }
 
     // Include head calculation in bounding box
-    final leftS = pose.landmarks[PoseLandmarkType.leftShoulder];
-    final rightS = pose.landmarks[PoseLandmarkType.rightShoulder];
+    final nose = pose.landmarks[PoseLandmarkType.nose];
     Offset? headBasePoint;
-    if (leftS != null && rightS != null && leftS.likelihood > 0.5 && rightS.likelihood > 0.5) {
-       final ptL = getBasePoint(leftS);
-       final ptR = getBasePoint(rightS);
-       final midX = (ptL.dx + ptR.dx) / 2;
-       final midY = (ptL.dy + ptR.dy) / 2;
-       final headLength = (ptL.dx - ptR.dx).abs() * 0.8;
-       headBasePoint = Offset(midX, midY - headLength - 10);
+    if (nose != null && nose.likelihood > 0.5) {
+       headBasePoint = getBasePoint(nose);
        
        if (headBasePoint.dx < minX) minX = headBasePoint.dx;
        if (headBasePoint.dy < minY) minY = headBasePoint.dy;
@@ -457,6 +451,8 @@ class MiniCharacterPainter extends CustomPainter {
 
     // Detect if the person is upside-down (hips physically above shoulders in raw sensor logic)
     bool isInverted = false;
+    final leftS = pose.landmarks[PoseLandmarkType.leftShoulder];
+    final rightS = pose.landmarks[PoseLandmarkType.rightShoulder];
     final lHip = pose.landmarks[PoseLandmarkType.leftHip];
     final rHip = pose.landmarks[PoseLandmarkType.rightHip];
     if (leftS != null && rightS != null && lHip != null && rHip != null) {

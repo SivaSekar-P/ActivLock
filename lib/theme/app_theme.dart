@@ -90,9 +90,9 @@ class AppBackground extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: isDark 
             ? [
-                const Color(0xFF1C1C1E), // iOS elevated dark surface base
-                const Color(0xFF0F1A24), // deep ocean/slate tint
-                const Color(0xFF000000), 
+                const Color(0xFF1E1E2C), // Deep purplish gray
+                const Color(0xFF0F1A24), // Slate
+                const Color(0xFF0D0D14), // Pitch black base
               ] 
             : [
                 const Color(0xFFF2F2F7),
@@ -128,11 +128,11 @@ class GlassContainer extends StatelessWidget {
     // Determine iOS glass properties based on theme
     final glassColor = isDark 
         ? Colors.white.withOpacity(0.08) 
-        : Colors.white.withOpacity(0.5);
+        : Colors.white.withOpacity(0.6);
         
     final defaultBorderColor = isDark
-        ? Colors.white.withOpacity(0.15)
-        : Colors.white.withOpacity(0.6);
+        ? Colors.white.withOpacity(0.12)
+        : Colors.white.withOpacity(0.8);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),

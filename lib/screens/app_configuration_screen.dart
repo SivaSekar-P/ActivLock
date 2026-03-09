@@ -34,6 +34,10 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
   // Exercise Config
   ExerciseType _selectedExercise = ExerciseType.squat;
   int _targetReps = 15;
+  
+  // Usage Constraints Config
+  int _usageTimeLimit = 15;
+  int _maxExceptions = 3;
 
   @override
   void initState() {
@@ -50,6 +54,8 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
       _confirmPinController.text = app.pinCode ?? "";
       _selectedExercise = app.exerciseType;
       _targetReps = app.targetReps;
+      _usageTimeLimit = app.usageTimeLimit;
+      _maxExceptions = app.dailyExceptions;
     } catch (e) {
       // Defaults
     }
@@ -107,10 +113,11 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
       pinCode: _pinController.text,
       exerciseType: _selectedExercise,
       targetReps: _targetReps,
-      dailyExceptions: 3, // Defaults since limits are removed from UI
+      dailyExceptions: _maxExceptions,
       usedExceptions: existingUsedEx,
       dailyUnlockLimit: 10,
       usedUnlocks: existingUsedUnlocks,
+      usageTimeLimit: _usageTimeLimit,
       lastResetDate: existingReset,
     );
 
@@ -194,6 +201,34 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
             ),
           ],
         );
+      case 3: // CONSTRAINTS
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Usage Constraints", style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text("Session time & bypass limits", style: TextStyle(color: subTextColor)),
+            const SizedBox(height: 20),
+            
+            Text("Time Limit per use: $_usageTimeLimit mins", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+            Slider(
+              value: _usageTimeLimit.toDouble(),
+              min: 5, max: 60, divisions: 11,
+              activeColor: AppTheme.mySystemBlue,
+              label: _usageTimeLimit.toString(),
+              onChanged: (val) => setState(() => _usageTimeLimit = val.round()),
+            ),
+            const SizedBox(height: 15),
+            
+            Text("Emergency Unlocks per day: $_maxExceptions", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+            Slider(
+              value: _maxExceptions.toDouble(),
+              min: 0, max: 10, divisions: 10,
+              activeColor: AppTheme.mySystemRed,
+              label: _maxExceptions.toString(),
+              onChanged: (val) => setState(() => _maxExceptions = val.round()),
+            ),
+          ],
+        );
       default:
         return const SizedBox.shrink();
     }
@@ -242,7 +277,7 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
               : Stepper(
                   type: StepperType.vertical,
                   currentStep: _currentStep,
-                  onStepContinue: _currentStep < 2 ? _nextStep : _finishSetup,
+                  onStepContinue: _currentStep < 3 ? _nextStep : _finishSetup,
                   onStepCancel: _currentStep > 0 ? _prevStep : null,
                   controlsBuilder: (context, details) {
                     return Padding(
@@ -252,7 +287,7 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.mySystemBlue, foregroundColor: Colors.white),
                             onPressed: details.onStepContinue,
-                            child: Text(_currentStep == 2 ? "ACTIVATE" : "NEXT", style: const TextStyle(fontWeight: FontWeight.bold)),
+                            child: Text(_currentStep == 3 ? "ACTIVATE" : "NEXT", style: const TextStyle(fontWeight: FontWeight.bold)),
                           ),
                           if (_currentStep > 0) ...[
                             const SizedBox(width: 10),
@@ -283,6 +318,12 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
                       subtitle: Text("Activity Rules", style: TextStyle(color: subTextColor)),
                       isActive: _currentStep >= 2,
                       content: _buildStepContent(2, textColor, subTextColor, inputFillColor, isDark),
+                    ),
+                    Step(
+                      title: Text("Usage Constraints", style: TextStyle(color: textColor)),
+                      subtitle: Text("Step 4", style: TextStyle(color: subTextColor)),
+                      isActive: _currentStep >= 3,
+                      content: _buildStepContent(3, textColor, subTextColor, inputFillColor, isDark),
                     ),
                   ],
                 ),

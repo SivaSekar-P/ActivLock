@@ -22,12 +22,15 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
 
   // Stats and Status
   bool _isLoading = true;
+  bool _canEmergency = false;
+  Map<String, int> _stats = {'emergency': 0, 'maxEmergency': 1};
   
   // App Config (defaults)
   String _pinCode = "";
   ExerciseType _exerciseType = ExerciseType.squat;
   int _targetReps = 10;
   int _maxExceptions = 3;
+  int _usageTimeLimit = 15;
 
   void initState() {
     super.initState();
@@ -45,6 +48,13 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
       _pinCode = currentApp.pinCode ?? "";
       _exerciseType = currentApp.exerciseType;
       _targetReps = currentApp.targetReps;
+      _maxExceptions = currentApp.dailyExceptions;
+      _usageTimeLimit = currentApp.usageTimeLimit;
+      
+      final usedE = currentApp.usedExceptions;
+      _canEmergency = usedE < _maxExceptions;
+      _stats = {'emergency': usedE, 'maxEmergency': _maxExceptions};
+      
       _isLoading = false;
     });
   }
@@ -62,11 +72,15 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
     }
 
     if (isValid) {
-      // Increment Per-App Exception Counter (for tracking only)
-      if (widget.lockedPackageName != null) {
-         await ref.read(appLockServiceProvider).incrementException(widget.lockedPackageName!);
+      if (_canEmergency) {
+        // Increment Per-App Exception Counter (for tracking only)
+        if (widget.lockedPackageName != null) {
+           await ref.read(appLockServiceProvider).incrementException(widget.lockedPackageName!);
+        }
+        await _performUnlock();
+      } else {
+        _showSnack('Emergency limit reached for this app!');
       }
-      _performUnlock();
     } else {
       _showSnack('Invalid Access Code!');
     }
@@ -85,15 +99,15 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
       if (widget.lockedPackageName != null) {
           await ref.read(appLockServiceProvider).incrementUnlock(widget.lockedPackageName!);
       }
-      _performUnlock();
+      await _performUnlock();
     }
   }
 
-  void _performUnlock() {
+  Future<void> _performUnlock() async {
     if (widget.lockedPackageName != null) {
-      ref.read(appLockServiceProvider).unlockAppTemporary(
+      await ref.read(appLockServiceProvider).unlockAppTemporary(
           widget.lockedPackageName!,
-          duration: const Duration(minutes: 15)
+          duration: Duration(minutes: _usageTimeLimit)
       );
     }
     SystemNavigator.pop();
@@ -199,10 +213,14 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
                   ] else ...[
                     TextButton(
                       onPressed: () {
-                        setState(() { _showPin = true; });
+                        if (_canEmergency) {
+                           setState(() { _showPin = true; });
+                        } else {
+                           _showSnack('No emergency unlocks left!');
+                        }
                       },
-                      child: const Text('EMERGENCY OVERRIDE (PIN)',
-                          style: TextStyle(color: AppTheme.mySystemRed, fontWeight: FontWeight.w600)
+                      child: Text('EMERGENCY OVERRIDE (${_stats['emergency']}/${_stats['maxEmergency']})',
+                          style: const TextStyle(color: AppTheme.mySystemRed, fontWeight: FontWeight.w600)
                       ),
                     ),
                   ]

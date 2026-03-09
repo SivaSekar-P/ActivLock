@@ -11,6 +11,7 @@ class LockedApp {
   final int usedExceptions;
   final int dailyUnlockLimit; 
   final int usedUnlocks;      
+  final int usageTimeLimit; // in minutes
   final DateTime? lastResetDate;
 
   LockedApp({
@@ -24,6 +25,7 @@ class LockedApp {
     this.usedExceptions = 0,
     this.dailyUnlockLimit = 10,
     this.usedUnlocks = 0,
+    this.usageTimeLimit = 15,
     this.lastResetDate,
   });
 
@@ -39,6 +41,7 @@ class LockedApp {
       'usedExceptions': usedExceptions,
       'dailyUnlockLimit': dailyUnlockLimit,
       'usedUnlocks': usedUnlocks,
+      'usageTimeLimit': usageTimeLimit,
       'lastResetDate': lastResetDate?.toIso8601String(),
     };
   }
@@ -57,6 +60,7 @@ class LockedApp {
       usedExceptions: json['usedExceptions'] ?? 0,
       dailyUnlockLimit: json['dailyUnlockLimit'] ?? 10,
       usedUnlocks: json['usedUnlocks'] ?? 0,
+      usageTimeLimit: json['usageTimeLimit'] ?? 15,
       lastResetDate: json['lastResetDate'] != null
           ? DateTime.parse(json['lastResetDate'])
           : null,
