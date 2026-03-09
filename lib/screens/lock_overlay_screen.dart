@@ -167,8 +167,18 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
                     else
                       Column(
                         children: [
-                          Text('CHOOSE CHALLENGE ($_targetReps REPS)', style: const TextStyle(color: Colors.grey, letterSpacing: 1.5)),
-                          const SizedBox(height: 15),
+                          Text(
+                            'CHOOSE CHALLENGE ($_targetReps ${_exerciseType == ExerciseType.steps ? "STEPS" : "REPS"})',
+                            style: TextStyle(
+                              color: Theme.of(context).brightness == Brightness.dark 
+                                  ? Colors.white60 
+                                  : Colors.black54, 
+                              letterSpacing: 1.5,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -183,6 +193,12 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
                                     icon: Icons.fitness_center,
                                     label: "PUSHUPS",
                                     onTap: () => _startActivity(ExerciseType.pushup)
+                                ),
+                              if (_exerciseType == ExerciseType.steps)
+                                 _ActivityButton(
+                                    icon: Icons.directions_walk,
+                                    label: "STEPS",
+                                    onTap: () => _startActivity(ExerciseType.steps)
                                 ),
                             ],
                           ),
@@ -199,11 +215,11 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
                         keyboardType: TextInputType.number,
                         style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary, letterSpacing: 5),
                         textAlign: TextAlign.center,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: 'PIN',
-                          hintStyle: TextStyle(color: Colors.grey),
-                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.mySystemBlue, width: 2)),
+                          hintStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white38 : Colors.black38),
+                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white24 : Colors.black26)),
+                          focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.mySystemBlue, width: 2)),
                         ),
                       ),
                     ),

@@ -10,6 +10,7 @@ import 'screens/app_selection_screen.dart';
 import 'screens/lock_overlay_screen.dart';
 import 'screens/workout_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/onboarding_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -76,10 +77,30 @@ class _ActivLockAppState extends ConsumerState<ActivLockApp> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       navigatorKey: navigatorKey,
-      initialRoute: '/',
+      initialRoute: '/init',
       onGenerateRoute: (settings) {
-        if (settings.name == '/') {
+        if (settings.name == '/init') {
+          return MaterialPageRoute(
+            builder: (_) => FutureBuilder<bool>(
+              future: ref.read(settingsServiceProvider).isOnboardingCompleted(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(body: Center(child: CircularProgressIndicator()));
+                }
+                if (snapshot.data == true) {
+                  return const DashboardScreen();
+                } else {
+                  return const OnboardingScreen();
+                }
+              },
+            ),
+          );
+        }
+        else if (settings.name == '/') {
           return MaterialPageRoute(builder: (_) => const DashboardScreen());
+        }
+        else if (settings.name == '/onboarding') {
+          return MaterialPageRoute(builder: (_) => const OnboardingScreen());
         }
         else if (settings.name == '/app_selection') {
           return MaterialPageRoute(builder: (_) => const AppSelectionScreen());

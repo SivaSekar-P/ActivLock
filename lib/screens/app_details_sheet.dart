@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/locked_app.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
+import '../models/exercise_type.dart';
 import 'app_configuration_screen.dart';
 
 class AppDetailsSheet extends ConsumerWidget {
@@ -71,7 +72,7 @@ class AppDetailsSheet extends ConsumerWidget {
                   const SizedBox(width: 10),
                   _StatCard(
                     label: "WORKOUT", 
-                    value: "${app.targetReps} ${app.exerciseType.name.toUpperCase()}S", 
+                    value: "${app.targetReps} ${app.exerciseType.name.toUpperCase()}${app.exerciseType == ExerciseType.steps ? "" : "S"}", 
                     icon: Icons.fitness_center, 
                     bgColor: cardColor, 
                     textColor: textColor

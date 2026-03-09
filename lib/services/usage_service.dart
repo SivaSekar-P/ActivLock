@@ -1,9 +1,13 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/exercise_type.dart';
 
 class UsageService {
   static const String _keyLastResetDate = 'last_reset_date';
   static const String _keyDailyUnlockCount = 'daily_unlock_count';
   static const String _keyDailyEmergencyCount = 'daily_emergency_count';
+  static const String _keyDailySquats = 'daily_squats_count';
+  static const String _keyDailyPushups = 'daily_pushups_count';
+  static const String _keyDailySteps = 'daily_steps_count';
 
   // New Keys for User Settings
   static const String _keyMaxDailyUnlocks = 'max_daily_unlocks';
@@ -23,6 +27,9 @@ class UsageService {
       await prefs.setString(_keyLastResetDate, todayStr);
       await prefs.setInt(_keyDailyUnlockCount, 0);
       await prefs.setInt(_keyDailyEmergencyCount, 0);
+      await prefs.setInt(_keyDailySquats, 0);
+      await prefs.setInt(_keyDailyPushups, 0);
+      await prefs.setInt(_keyDailySteps, 0);
     }
   }
 
@@ -80,6 +87,24 @@ class UsageService {
     await prefs.setInt(_keyDailyEmergencyCount, count + 1);
   }
 
+  Future<void> addExerciseCount(ExerciseType type, int amount) async {
+    final prefs = await SharedPreferences.getInstance();
+    String key = ''; // Initialize to avoid build error
+    switch (type) {
+      case ExerciseType.squat:
+        key = _keyDailySquats;
+        break;
+      case ExerciseType.pushup:
+        key = _keyDailyPushups;
+        break;
+      case ExerciseType.steps:
+        key = _keyDailySteps;
+        break;
+    }
+    final current = prefs.getInt(key) ?? 0;
+    await prefs.setInt(key, current + amount);
+  }
+
   Future<Map<String, int>> getStats() async {
     await _checkAndResetDailyCounts();
     final prefs = await SharedPreferences.getInstance();
@@ -88,6 +113,9 @@ class UsageService {
       'emergency': prefs.getInt(_keyDailyEmergencyCount) ?? 0,
       'maxUnlocks': await getMaxDailyUnlocks(),
       'maxEmergency': await getMaxEmergencyUsage(),
+      'squats': prefs.getInt(_keyDailySquats) ?? 0,
+      'pushups': prefs.getInt(_keyDailyPushups) ?? 0,
+      'steps': prefs.getInt(_keyDailySteps) ?? 0,
     };
   }
 }

@@ -28,10 +28,18 @@ class LockedAppsNotifier extends StateNotifier<List<LockedApp>> {
   }
 
   Future<void> addApp(LockedApp app) async {
-    if (!state.any((a) => a.packageName == app.packageName)) {
+    final index = state.indexWhere((a) => a.packageName == app.packageName);
+    if (index != -1) {
+      // Update existing
+      state = [
+        for (int i = 0; i < state.length; i++)
+          if (i == index) app else state[i]
+      ];
+    } else {
+      // Add new
       state = [...state, app];
-      await _service.saveLockedApps(state);
     }
+    await _service.saveLockedApps(state);
   }
 
   Future<void> removeApp(String packageName) async {
@@ -67,3 +75,8 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
     await prefs.setBool('is_dark_theme', mode == ThemeMode.dark);
   }
 }
+
+final dailyStatsProvider = FutureProvider<Map<String, int>>((ref) async {
+  final service = ref.watch(usageServiceProvider);
+  return await service.getStats();
+});

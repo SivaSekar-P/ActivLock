@@ -97,7 +97,6 @@ class _AppSelectionScreenState extends ConsumerState<AppSelectionScreen> {
                         fontWeight: isLocked ? FontWeight.w600 : FontWeight.normal,
                       )
                   ),
-                  subtitle: Text(app.packageName, style: TextStyle(fontSize: 12, color: subTextColor)),
                   trailing: Switch(
                     value: isLocked,
                     activeColor: AppTheme.mySystemBlue,

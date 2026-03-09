@@ -250,7 +250,7 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader("SCANNING PROTOCOL", Icons.fitness_center, textColor),
+        _buildSectionHeader("CHALLENGE TYPE", Icons.fitness_center, textColor),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(color: inputFillColor, borderRadius: BorderRadius.circular(12)),
@@ -260,61 +260,115 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
               dropdownColor: isDark ? AppTheme.darkSurface : AppTheme.lightSurface,
               style: TextStyle(color: textColor, fontWeight: FontWeight.w600),
               isExpanded: true,
-              onChanged: (val) => setState(() => _selectedExercise = val!),
+              onChanged: (val) {
+                setState(() {
+                  _selectedExercise = val!;
+                  // Adjust target if current is out of range for new type
+                  if (_selectedExercise == ExerciseType.steps) {
+                    if (_targetReps < 10) _targetReps = 50;
+                  } else {
+                    if (_targetReps > 50) _targetReps = 15;
+                  }
+                });
+              },
               items: ExerciseType.values.map((type) => DropdownMenuItem(value: type, child: Text(type.name.toUpperCase()))).toList(),
             ),
           ),
         ),
         const SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text("Target Reps", style: TextStyle(color: textColor, fontWeight: FontWeight.w500)),
-            Text("$_targetReps", style: const TextStyle(color: AppTheme.mySystemBlue, fontWeight: FontWeight.bold, fontSize: 18)),
-          ],
-        ),
-        Slider(
-          value: _targetReps.toDouble(),
-          min: 5, max: 50, divisions: 45,
+        _buildNumericInputRow(
+          label: _selectedExercise == ExerciseType.steps ? "Target Steps" : "Target Reps",
+          value: _targetReps,
+          min: _selectedExercise == ExerciseType.steps ? 10 : 1,
+          max: _selectedExercise == ExerciseType.steps ? 500 : 100,
+          onChanged: (val) => setState(() => _targetReps = val),
+          textColor: textColor,
+          inputFillColor: inputFillColor,
           activeColor: AppTheme.mySystemBlue,
-          onChanged: (val) => setState(() => _targetReps = val.round()),
         ),
       ],
     );
   }
 
-  Widget _buildConstraintSection(Color textColor, Color subTextColor) {
+  Widget _buildConstraintSection(Color textColor, Color subTextColor, Color inputFillColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader("USAGE CONSTRAINTS", Icons.timer_outlined, textColor),
+        _buildSectionHeader("ACCESS LIMITS", Icons.timer_outlined, textColor),
         
-        _buildSliderRow("Session Limit", "$_usageTimeLimit min", _usageTimeLimit.toDouble(), 5, 60, 11, AppTheme.mySystemBlue, (v) => setState(() => _usageTimeLimit = v.round()), textColor),
+        _buildNumericInputRow(label: "Session Limit (min)", value: _usageTimeLimit, min: 1, max: 120, onChanged: (v) => setState(() => _usageTimeLimit = v), textColor: textColor, inputFillColor: inputFillColor, activeColor: AppTheme.mySystemBlue),
         const SizedBox(height: 15),
-        _buildSliderRow("Daily Emergency", "$_maxExceptions", _maxExceptions.toDouble(), 0, 10, 10, AppTheme.mySystemRed, (v) => setState(() => _maxExceptions = v.round()), textColor),
+        _buildNumericInputRow(label: "Daily Emergency", value: _maxExceptions, min: 0, max: 20, onChanged: (v) => setState(() => _maxExceptions = v), textColor: textColor, inputFillColor: inputFillColor, activeColor: AppTheme.mySystemRed),
         const SizedBox(height: 15),
-        _buildSliderRow("Daily Total", "$_dailyUnlockLimit", _dailyUnlockLimit.toDouble(), 1, 50, 49, AppTheme.mySystemPurple, (v) => setState(() => _dailyUnlockLimit = v.round()), textColor),
+        _buildNumericInputRow(label: "Daily Unlock Limit", value: _dailyUnlockLimit, min: 1, max: 100, onChanged: (v) => setState(() => _dailyUnlockLimit = v), textColor: textColor, inputFillColor: inputFillColor, activeColor: AppTheme.mySystemPurple),
       ],
     );
   }
 
-  Widget _buildSliderRow(String label, String valueText, double value, double min, double max, int divisions, Color activeColor, ValueChanged<double> onChanged, Color textColor) {
+  Widget _buildNumericInputRow({
+    required String label,
+    required int value,
+    required int min,
+    required int max,
+    required ValueChanged<int> onChanged,
+    required Color textColor,
+    required Color inputFillColor,
+    required Color activeColor,
+  }) {
+    final controller = TextEditingController(text: "$value");
+    controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(label, style: TextStyle(color: textColor, fontWeight: FontWeight.w500, fontSize: 13)),
+        const SizedBox(height: 8),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: TextStyle(color: textColor, fontWeight: FontWeight.w500)),
-            Text(valueText, style: TextStyle(color: activeColor, fontWeight: FontWeight.bold)),
+            Expanded(
+              child: Container(
+                height: 50,
+                decoration: BoxDecoration(color: inputFillColor, borderRadius: BorderRadius.circular(12)),
+                child: TextField(
+                  controller: controller,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+                  decoration: const InputDecoration(border: OutlineInputBorder(borderSide: BorderSide.none), contentPadding: EdgeInsets.zero),
+                  onSubmitted: (text) {
+                    int? newVal = int.tryParse(text);
+                    if (newVal != null) {
+                      newVal = newVal.clamp(min, max);
+                      onChanged(newVal);
+                    }
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            _buildStepButton(Icons.remove, () {
+              if (value > min) onChanged(value - 1);
+            }, activeColor.withOpacity(0.1), activeColor),
+            const SizedBox(width: 8),
+            _buildStepButton(Icons.add, () {
+              if (value < max) onChanged(value + 1);
+            }, activeColor.withOpacity(0.1), activeColor),
           ],
         ),
-        Slider(
-          value: value,
-          min: min, max: max, divisions: divisions,
-          activeColor: activeColor,
-          onChanged: onChanged,
-        ),
       ],
+    );
+  }
+
+  Widget _buildStepButton(IconData icon, VoidCallback onTap, Color bgColor, Color iconColor) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
+        child: Icon(icon, color: iconColor),
+      ),
     );
   }
 
@@ -328,7 +382,7 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
     return Scaffold(
       extendBodyBehindAppBar: true, 
       appBar: AppBar(
-        title: Text(widget.isEditing ? "EDIT PROTOCOL" : "SECURE ${widget.appName.toUpperCase()}", 
+        title: Text(widget.isEditing ? "EDIT SETTINGS" : "SECURE ${widget.appName.toUpperCase()}", 
           style: TextStyle(fontSize: 16, color: textColor, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -349,7 +403,7 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
                             if (widget.editMode == EditMode.workout)
                               GlassContainer(child: _buildExerciseSection(textColor, subTextColor, inputFillColor, isDark)),
                             if (widget.editMode == EditMode.limits)
-                              GlassContainer(child: _buildConstraintSection(textColor, subTextColor)),
+                              GlassContainer(child: _buildConstraintSection(textColor, subTextColor, inputFillColor)),
                             const SizedBox(height: 100), 
                           ],
                         ),
@@ -370,7 +424,7 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
                           onPressed: _finishSetup,
-                          child: const Text("COMMIT CHANGES", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.5)),
+                          child: const Text("SAVE SETTINGS", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.5)),
                         ),
                       ),
                     ),
@@ -452,7 +506,7 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
                       ),
                     ),
                     Step(
-                      title: Text("Scanning Protocol", style: TextStyle(color: textColor)),
+                      title: Text("Challenge Model", style: TextStyle(color: textColor)),
                       subtitle: Text("Activity Rules", style: TextStyle(color: subTextColor, fontSize: 12)),
                       isActive: _currentStep >= 2,
                       content: GlassContainer(
@@ -461,12 +515,12 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
                       ),
                     ),
                     Step(
-                      title: Text("Usage Constraints", style: TextStyle(color: textColor)),
+                      title: Text("Access Limits", style: TextStyle(color: textColor)),
                       subtitle: Text("Limit Control", style: TextStyle(color: subTextColor, fontSize: 12)),
                       isActive: _currentStep >= 3,
                       content: GlassContainer(
                         padding: const EdgeInsets.all(16),
-                        child: _buildConstraintSection(textColor, subTextColor),
+                        child: _buildConstraintSection(textColor, subTextColor, inputFillColor),
                       ),
                     ),
                   ],

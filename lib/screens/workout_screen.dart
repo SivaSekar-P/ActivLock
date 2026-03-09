@@ -4,9 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'dart:io';
+import 'dart:async';
 import '../models/exercise_type.dart';
 import '../services/pose_detection_service.dart';
 import '../services/usage_service.dart';
+import '../services/step_service.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_providers.dart';
 
@@ -30,19 +32,53 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   String _feedback = "";
   CameraLensDirection _cameraDirection = CameraLensDirection.front;
 
+  // Step Tracking
+  final StepService _stepService = StepService();
+  StreamSubscription<int>? _stepSubscription;
+  bool _isStepsPermissionGranted = false;
+
   // For Painting
   Size? _imageSize;
   InputImageRotation _rotation = InputImageRotation.rotation270deg;
+  int _usageTimeLimit = 15;
 
   @override
   void initState() {
     super.initState();
     _poseService.setExerciseType(widget.exerciseType);
-    _initializeCamera();
+    if (widget.exerciseType == ExerciseType.steps) {
+      _initStepTracking();
+    } else {
+      _initializeCamera();
+    }
     _loadTargetReps();
 
     // Show Instructions Dialog after build
     WidgetsBinding.instance.addPostFrameCallback((_) => _showInstructions());
+  }
+
+  Future<void> _initStepTracking() async {
+    final granted = await _stepService.requestPermission();
+    if (mounted) {
+      setState(() {
+        _isStepsPermissionGranted = granted;
+      });
+    }
+    if (granted) {
+      _stepService.startTracking();
+      _stepSubscription = _stepService.stepsStream.listen((steps) {
+        if (mounted) {
+          setState(() {
+            _reps = steps;
+            _status = "STAY ACTIVE";
+            _feedback = "Walking...";
+          });
+          if (_reps >= _targetReps) {
+            _handleSuccess();
+          }
+        }
+      });
+    }
   }
 
   Future<void> _loadTargetReps() async {
@@ -52,6 +88,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
       if (mounted) {
         setState(() {
           _targetReps = app.targetReps;
+          _usageTimeLimit = app.usageTimeLimit;
         });
       }
     } catch (_) {
@@ -68,6 +105,8 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary;
     
+    final isSteps = widget.exerciseType == ExerciseType.steps;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -76,7 +115,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: const BorderSide(color: AppTheme.mySystemBlue)),
         title: Row(
           children: [
-            const Icon(Icons.info_outline, color: AppTheme.mySystemBlue),
+            Icon(isSteps ? Icons.directions_walk : Icons.info_outline, color: AppTheme.mySystemBlue),
             const SizedBox(width: 10),
             Text("${widget.exerciseType.name.toUpperCase()} SETUP", style: TextStyle(color: textColor, fontSize: 18)),
           ],
@@ -84,20 +123,28 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _instructionStep("1. Place phone on the floor, leaning against a wall.", isDark),
-            const SizedBox(height: 10),
-            _instructionStep("2. Ensure the front camera faces you.", isDark),
-            const SizedBox(height: 10),
-            _instructionStep("3. Step back until your WHOLE body is visible (Head to Toe).", isDark),
-            const SizedBox(height: 10),
-            _instructionStep("4. Wait for the skeleton lines to appear.", isDark),
-          ],
+          children: isSteps 
+            ? [
+                _instructionStep("1. Keep your phone in your pocket or hold it in your hand.", isDark),
+                const SizedBox(height: 10),
+                _instructionStep("2. Start walking to reach your target steps.", isDark),
+                const SizedBox(height: 10),
+                _instructionStep("3. The app will unlock automatically once finished.", isDark),
+              ]
+            : [
+                _instructionStep("1. Place phone on the floor, leaning against a wall.", isDark),
+                const SizedBox(height: 10),
+                _instructionStep("2. Ensure the front camera faces you.", isDark),
+                const SizedBox(height: 10),
+                _instructionStep("3. Step back until your WHOLE body is visible (Head to Toe).", isDark),
+                const SizedBox(height: 10),
+                _instructionStep("4. Wait for the skeleton lines to appear.", isDark),
+              ],
         ),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("I'M READY"),
+            child: Text(isSteps ? "START WALKING" : "I'M READY"),
           )
         ],
       ),
@@ -179,8 +226,15 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   }
 
   void _handleSuccess() async {
-    await _controller?.stopImageStream();
+    if (widget.exerciseType != ExerciseType.steps) {
+      await _controller?.stopImageStream();
+    } else {
+      _stepSubscription?.cancel();
+      _stepService.stopTracking();
+    }
+    
     await ref.read(usageServiceProvider).incrementUnlockCount();
+    await ref.read(usageServiceProvider).addExerciseCount(widget.exerciseType, _targetReps);
 
     if (!mounted) return;
     
@@ -192,7 +246,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: isDark ? AppTheme.darkSurface : AppTheme.lightSurface,
         title: const Text("UNLOCKED!", style: TextStyle(color: AppTheme.mySystemBlue, fontWeight: FontWeight.bold)),
-        content: Text("Protocol complete. Access granted for 15 minutes.", style: TextStyle(color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary)),
+        content: Text("Protocol complete. Access granted for $_usageTimeLimit minutes.", style: TextStyle(color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary)),
         actions: [
           TextButton(
             onPressed: () {
@@ -227,39 +281,80 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   void dispose() {
     _controller?.dispose();
     _poseService.close();
+    _stepSubscription?.cancel();
+    _stepService.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null || !_controller!.value.isInitialized) {
+    if (widget.exerciseType != ExerciseType.steps && (_controller == null || !_controller!.value.isInitialized)) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final size = MediaQuery.of(context).size;
-    // Check if body is fully visible
     final isVisible = _poseService.isBodyVisible;
+    final isSteps = widget.exerciseType == ExerciseType.steps;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subTextColor = isDark ? Colors.white70 : Colors.black54;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: isDark ? Colors.black : AppTheme.lightBackground,
       body: Stack(
         children: [
-          // 1. FULL SCREEN CAMERA
-          SizedBox(
-            width: size.width,
-            height: size.height,
-            child: FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: _controller!.value.previewSize!.height,
-                height: _controller!.value.previewSize!.width,
-                child: CameraPreview(_controller!),
+          // 1. BACKGROUND
+          if (!isSteps)
+            SizedBox(
+              width: size.width,
+              height: size.height,
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _controller!.value.previewSize!.height,
+                  height: _controller!.value.previewSize!.width,
+                  child: CameraPreview(_controller!),
+                ),
+              ),
+            )
+          else 
+            AppBackground(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.directions_run, color: AppTheme.mySystemBlue, size: 80),
+                    const SizedBox(height: 40),
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 250,
+                          height: 250,
+                          child: CircularProgressIndicator(
+                            value: _reps / _targetReps,
+                            strokeWidth: 15,
+                            backgroundColor: textColor.withOpacity(0.1),
+                            valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.mySystemBlue),
+                          ),
+                        ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text("$_reps", style: TextStyle(fontSize: 64, fontWeight: FontWeight.bold, color: textColor)),
+                            Text("OF $_targetReps STEPS", style: TextStyle(fontSize: 14, color: subTextColor, letterSpacing: 1.5)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
 
-          // 2. MINI CHARACTER (BOTTOM RIGHT)
-          if (_poseService.rawPose != null && _imageSize != null)
+          // 2. MINI CHARACTER (Only for Camera Exercises)
+          if (!isSteps && _poseService.rawPose != null && _imageSize != null)
             Positioned(
               bottom: 160,
               right: 20,
@@ -281,7 +376,8 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
               ),
             ),
 
-          // 3. DARK GRADIENT & TEXT OVERLAY
+          // 3. DARK GRADIENT & TEXT OVERLAY (Only for Camera Exercises)
+          if (!isSteps)
           Positioned.fill(
               child: Container(
                   decoration: BoxDecoration(
@@ -299,7 +395,8 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
               )
           ),
 
-          // 4. MAIN STATS
+          // 4. MAIN STATS (Only for Camera Exercises)
+          if (!isSteps)
           Positioned(
             bottom: 40,
             left: 0,
@@ -357,17 +454,49 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
           ),
 
           // 6. FLIP CAMERA BUTTON
-          Positioned(
-            top: 40,
-            right: 20,
-            child: CircleAvatar(
-              backgroundColor: Colors.black54,
-              child: IconButton(
-                icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
-                onPressed: _toggleCamera,
+          if (!isSteps)
+            Positioned(
+              top: 40,
+              right: 20,
+              child: CircleAvatar(
+                backgroundColor: Colors.black54,
+                child: IconButton(
+                  icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
+                  onPressed: _toggleCamera,
+                ),
               ),
             ),
-          ),
+          
+          if (isSteps && !_isStepsPermissionGranted)
+            Positioned.fill(
+              child: Center(
+                child: GlassContainer(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.warning, color: Colors.orange, size: 48),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Permission Required",
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 5),
+                      const Text(
+                        "Please allow activity recognition to track steps.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: _initStepTracking,
+                        child: const Text("GRANT PERMISSION"),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -401,10 +530,15 @@ class MiniCharacterPainter extends CustomPainter {
 
     // Translate a raw landmark into a normalized base coordinate space first.
     Offset getBasePoint(PoseLandmark landmark) {
+      // Logic fix for hand tracking mirroring issues:
+      // Front camera usually needs mirroring, back camera usually doesn't.
+      // If user says right hand is left character, we swap the logic.
       if (cameraDirection == CameraLensDirection.front) {
-         return Offset(landmark.x, landmark.y);
-      } else {
+         // SWAPPED: Was Offset(landmark.x, landmark.y)
          return Offset(imageW - landmark.x, landmark.y);
+      } else {
+         // SWAPPED: Was Offset(imageW - landmark.x, landmark.y)
+         return Offset(landmark.x, landmark.y);
       }
     }
 

@@ -45,4 +45,17 @@ class SettingsService {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt(_keyDailyStepGoal) ?? 1000;
   }
+
+  // --- Onboarding ---
+  static const String _keyOnboardingDone = 'onboarding_done';
+
+  Future<void> setOnboardingCompleted(bool done) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyOnboardingDone, done);
+  }
+
+  Future<bool> isOnboardingCompleted() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyOnboardingDone) ?? false;
+  }
 }

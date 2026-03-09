@@ -37,6 +37,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
       await Permission.systemAlertWindow.request();
     }
 
+    if (!mounted) return;
     final isEnabled = await ref.read(appLockServiceProvider).isAccessibilityServiceEnabled();
 
     if (mounted) {
@@ -73,6 +74,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text('ACTIVLOCK', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, letterSpacing: 2)),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -97,11 +99,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
       body: AppBackground(
         child: Column(
           children: [
+            Padding(
+               padding: const EdgeInsets.only(top: 100, left: 16, right: 16),
+               child: _buildDailySummaryCard(context, ref, textColor, subTextColor),
+            ),
+
             if (!_isAccessibilityEnabled)
               InkWell(
                 onTap: _openAccessibilitySettings,
                 child: Padding(
-                  padding: const EdgeInsets.only(top: 100, left: 16, right: 16),
+                  padding: const EdgeInsets.only(top: 16, left: 16, right: 16),
                   child: GlassContainer(
                     blur: 20,
                     padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
@@ -152,7 +159,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                 ),
               )
                   : ListView.builder(
-                padding: EdgeInsets.fromLTRB(16, _isAccessibilityEnabled ? 100 : 20, 16, 16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                 itemCount: lockedApps.length,
                 itemBuilder: (context, index) {
                   final app = lockedApps[index];
@@ -174,7 +181,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                           app.appName,
                           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: textColor),
                         ),
-                        subtitle: Text(app.packageName, style: TextStyle(fontSize: 12, color: subTextColor)),
                         trailing: Icon(Icons.chevron_right, color: subTextColor),
                         onTap: () {
                           showModalBottomSheet(
@@ -193,6 +199,52 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDailySummaryCard(BuildContext context, WidgetRef ref, Color textColor, Color subTextColor) {
+    final statsAsync = ref.watch(dailyStatsProvider);
+
+    return GlassContainer(
+      blur: 25,
+      padding: const EdgeInsets.all(20),
+      child: statsAsync.when(
+        data: (stats) => Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("DAILY SUMMARY", style: TextStyle(color: textColor, fontWeight: FontWeight.bold, letterSpacing: 1.2, fontSize: 12)),
+                const Icon(Icons.auto_graph, color: AppTheme.mySystemBlue, size: 16),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatItem("Unlocks", "${stats['unlocks']}", Icons.lock_open, AppTheme.mySystemBlue, textColor),
+                _buildStatItem("Squats", "${stats['squats']}", Icons.accessibility_new, AppTheme.mySystemGreen, textColor),
+                _buildStatItem("Pushups", "${stats['pushups']}", Icons.fitness_center, AppTheme.mySystemPurple, textColor),
+                _buildStatItem("Steps", "${stats['steps']}", Icons.directions_walk, Colors.orange, textColor),
+              ],
+            ),
+          ],
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, r) => Text("Error loading stats", style: TextStyle(color: subTextColor)),
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value, IconData icon, Color color, Color textColor) {
+    return Column(
+      children: [
+        Icon(icon, color: color.withOpacity(0.8), size: 20),
+        const SizedBox(height: 8),
+        Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textColor)),
+        const SizedBox(height: 4),
+        Text(label.toUpperCase(), style: const TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.w600)),
+      ],
     );
   }
 }

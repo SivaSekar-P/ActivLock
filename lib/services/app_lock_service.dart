@@ -223,6 +223,12 @@ class AppLockService {
       if (freshApps.any((a) => a.packageName == packageName && a.isLocked)) {
         final freshNames = freshApps.where((a) => a.isLocked).map((a) => a.packageName).toList();
         await prefs.setString('native_locked_apps', freshNames.join(','));
+        
+        // Force immediate Native Lock Awareness and redirect to ActivLock if user is in the app
+        try {
+          await _channel.invokeMethod('updateLockedApps', {'packages': freshNames});
+          await _channel.invokeMethod('showLockScreen');
+        } catch (_) {}
       }
     });
   }
