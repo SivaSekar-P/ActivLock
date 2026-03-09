@@ -1,48 +1,69 @@
 # ActivLock 🔒💪
 
-**Lock Apps. Earn Access. Get Fit.**
+**Break the Cycle. Earn Your Access. Master Your Focus.**
 
-ActivLock is a Flutter-based Android application that helps you break phone addiction by locking your distracting apps and requiring physical activity (Squats) to unlock them.
-
-Built with a sleek, professional **iOS Glassmorphism** theme 📱✨.
-
-## 📥 Download
-
-**[Download Latest APK (v1.0)](https://raw.githubusercontent.com/SivaSekar-P/ActivLock/main/app-release.apk)**
-
-## ✨ Features
-
-- **App Locking**: Select apps to lock (e.g., Instagram, TikTok, YouTube).
-- **Squat to Unlock**: Use ML Kit Pose Detection to verify you actually did the squats!
-- **Daily Limits**: Set a maximum number of unlocks per day for each app.
-- **Strict Mode**: Once the daily limit is reached, the app stays locked until tomorrow.
-- **Beautiful UI**: Sleek, dark-mode futuristic design.
-
-## 🚀 Installation & Permissions (IMPORTANT)
-
-Since this app uses advanced features like "Display over other apps" and "Accessibility Services" to lock other apps, you need to grant special permissions.
-
-**For Android 13+ Users:**
-
-When you first install the app from an APK (not Play Store), Android restricts the "Accessibility Service" for security. **You must manually allow it.**
-
-1.  **Install the APK**.
-2.  Open the app. It will ask for permissions.
-3.  When asked for **Accessibility Service**, if the switch is grayed out or says "Restricted Settings":
-    *   Go to your phone's **Settings** -> **Apps** -> **ActivLock**.
-    *   Tap the **three dots (⋮)** in the top-right corner.
-    *   Tap **"Allow restricted settings"**.
-    *   Now go back to **Settings -> Accessibility -> ActivLock** and enable it.
-
-4.  Grant **"Display over other apps"** permission when prompted.
-5.  Grant **"Camera"** permission for squat detection.
-
-## 🛠️ Built With
-
-- **Flutter** - UI Framework
-- **Google ML Kit** - Pose Detection
-- **Riverpod** - State Management
-- **Flutter Background Service** - To keep the lock running
+ActivLock is a sophisticated, fitness-integrated app locker designed to combat digital addiction and promote physical well-being. By merging productivity with physical activity, ActivLock transforms distracting screen time into an opportunity for fitness.
 
 ---
-*Created by [SivaSekar-P](https://github.com/SivaSekar-P)*
+
+## 🌟 Why ActivLock?
+
+In a world of infinite scrolls and dopamine loops, ActivLock introduces a "Physical Paywall." You don't just lock apps; you earn the right to use them.
+
+- **Dopamine Reset**: Break the habit of mindless scrolling.
+- **Micro-Fitness**: Integrate short bursts of activity into your daily routine.
+- **Elite Design**: Experience a premium **iOS-inspired Glassmorphism** interface that feels state-of-the-art.
+
+---
+
+## ✨ Core Features
+
+### 🛡️ Intelligent App Shielding
+Secure any application on your device—from social media to streaming services. Once locked, access is granted only through physical verification or emergency bypass.
+
+### 🏋️ AI Pose Detection (Squat-to-Unlock)
+Using advanced Google ML Kit Pose Detection, ActivLock verifies your physical activity in real-time. Perform your target squats to lift the digital shield.
+
+### ⚙️ Customizable Protocols
+- **Granular Editing**: Unified configuration for PINs, exercises, and time limits.
+- **Usage Constraints**: Set daily unlock limits to prevent excessive usage even after exercising.
+- **Emergency Overrides**: Controlled bypasses for critical situations, limited to your preference.
+
+### 💎 Premium Aesthetics
+- **Glassmorphism UI**: High-blur, semi-transparent layers with vibrant accent colors.
+- **Dynamic Theming**: Seamless support for both Dark and Light modes with optimized contrast.
+
+---
+
+## 📥 Getting Started
+
+### Download
+**[Download Latest APK (v1.1)](https://github.com/SivaSekar-P/ActivLock/releases/latest)**
+
+### 🚀 Installation & Permissions
+
+ActivLock requires advanced permissions to maintain its security layer. Please follow these steps carefully:
+
+1. **Install the APK**.
+2. **Grant Overlay Permission**: Allows ActivLock to display the shield over other apps.
+3. **Enable Accessibility Service**: Required to detect when a locked app is launched.
+   - *Note for Android 13/14+*: If "Restricted Setting" appears, go to **Settings > Apps > ActivLock > Three dots (⋮) > Allow restricted settings**.
+4. **Camera Permission**: Required for real-time AI pose detection.
+
+---
+
+## 🛠️ Technical Stack
+
+- **Flutter**: High-performance UI framework.
+- **Google ML Kit**: Real-time pose estimation.
+- **Riverpod**: Robust state management.
+- **Native Android (Kotlin)**: Accessibility Service integration for bulletproof locking.
+
+---
+
+## 🤝 Contribution & License
+
+Created by **[SivaSekar-P](https://github.com/SivaSekar-P)**.
+
+*ActivLock is built for personal productivity. Use responsibly.*
+

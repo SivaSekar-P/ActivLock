@@ -73,7 +73,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text('ACTIVLOCK PROTOCOL', style: TextStyle(color: textColor)),
+        title: Text('ACTIVLOCK', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, letterSpacing: 2)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: textColor),

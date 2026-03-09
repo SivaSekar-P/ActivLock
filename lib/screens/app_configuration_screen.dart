@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:typed_data';
 import '../models/locked_app.dart';
 import '../models/exercise_type.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
 
+enum EditMode { none, pin, workout, limits }
+
 class AppConfigurationScreen extends ConsumerStatefulWidget {
   final String packageName;
   final String appName;
   final int initialStep;
-  final bool isEditing; // New: If true, shows single step with Save button
+  final bool isEditing; 
+  final EditMode editMode;
 
   const AppConfigurationScreen({
     super.key,
@@ -18,6 +20,7 @@ class AppConfigurationScreen extends ConsumerStatefulWidget {
     required this.appName,
     this.initialStep = 0,
     this.isEditing = false,
+    this.editMode = EditMode.none,
   });
 
   @override
@@ -28,8 +31,11 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
   late int _currentStep;
   
   // PIN Config
+  final TextEditingController _oldPinController = TextEditingController();
   final TextEditingController _pinController = TextEditingController();
   final TextEditingController _confirmPinController = TextEditingController();
+  bool _isOldPinVerified = false;
+  String _storedPin = "";
   
   // Exercise Config
   ExerciseType _selectedExercise = ExerciseType.squat;
@@ -38,6 +44,7 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
   // Usage Constraints Config
   int _usageTimeLimit = 15;
   int _maxExceptions = 3;
+  int _dailyUnlockLimit = 10;
 
   @override
   void initState() {
@@ -50,27 +57,31 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
     final apps = ref.read(lockedAppsProvider);
     try {
       final app = apps.firstWhere((a) => a.packageName == widget.packageName);
-      _pinController.text = app.pinCode ?? "";
-      _confirmPinController.text = app.pinCode ?? "";
+      _storedPin = app.pinCode ?? "";
+      if (!widget.isEditing) {
+        _pinController.text = _storedPin;
+        _confirmPinController.text = _storedPin;
+      }
       _selectedExercise = app.exerciseType;
       _targetReps = app.targetReps;
       _usageTimeLimit = app.usageTimeLimit;
       _maxExceptions = app.dailyExceptions;
+      _dailyUnlockLimit = app.dailyUnlockLimit;
     } catch (e) {
-      // Defaults
+      // Defaults already set
     }
   }
 
   void _nextStep() {
     if (_currentStep == 0) {
       if (_pinController.text.length < 4) {
-         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("PIN must be at least 4 digits"), backgroundColor: Colors.red));
+         _showError("PIN must be at least 4 digits");
          return;
       }
     }
     if (_currentStep == 1) {
       if (_pinController.text != _confirmPinController.text) {
-         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("PINs do not match!"), backgroundColor: Colors.red));
+         _showError("PINs do not match!");
          return;
       }
     }
@@ -81,20 +92,42 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
     setState(() => _currentStep--);
   }
 
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: AppTheme.mySystemRed,
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+
+  void _verifyOldPin() {
+    if (_oldPinController.text == _storedPin) {
+      setState(() {
+        _isOldPinVerified = true;
+      });
+    } else {
+      _showError("Incorrect Old PIN!");
+    }
+  }
+
   void _finishSetup() {
-    // Final Validation exactly for editing mode directly
-    if (widget.isEditing) {
-       if (_pinController.text != _confirmPinController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("PINs do not match!"), backgroundColor: Colors.red));
+    // Validation for PIN editing
+    if (widget.isEditing && widget.editMode == EditMode.pin) {
+      if (!_isOldPinVerified) {
+        _showError("Please verify old PIN first");
+        return;
+      }
+      if (_pinController.text != _confirmPinController.text) {
+        _showError("PINs do not match!");
         return;
       }
       if (_pinController.text.length < 4) {
-         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("PIN must be at least 4 digits"), backgroundColor: Colors.red));
+        _showError("New PIN must be at least 4 digits");
         return;
       }
     }
 
-    // Preserve existing counters
+    // Preserve existing counters if editing
     final existingApps = ref.read(lockedAppsProvider);
     int existingUsedEx = 0;
     int existingUsedUnlocks = 0;
@@ -110,12 +143,12 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
       packageName: widget.packageName,
       appName: widget.appName,
       isLocked: true,
-      pinCode: _pinController.text,
+      pinCode: (widget.isEditing && widget.editMode == EditMode.pin) ? _pinController.text : _storedPin,
       exerciseType: _selectedExercise,
       targetReps: _targetReps,
       dailyExceptions: _maxExceptions,
       usedExceptions: existingUsedEx,
-      dailyUnlockLimit: 10,
+      dailyUnlockLimit: _dailyUnlockLimit,
       usedUnlocks: existingUsedUnlocks,
       usageTimeLimit: _usageTimeLimit,
       lastResetDate: existingReset,
@@ -125,113 +158,164 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
     Navigator.of(context).pop();
   }
 
-  Widget _buildStepContent(int stepIndex, Color textColor, Color subTextColor, Color inputFillColor, bool isDark) {
-    switch (stepIndex) {
-      case 0: // Set PIN
-        return Column(
-          children: [
-            Text("Set Access PIN", style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)),
-            Text("Used for emergency overrides", style: TextStyle(color: subTextColor)),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _pinController,
-              keyboardType: TextInputType.number,
-              obscureText: true,
-              style: TextStyle(color: textColor, letterSpacing: 5),
-              decoration: InputDecoration(
-                labelText: "Enter 4-digit PIN",
-                labelStyle: TextStyle(color: subTextColor),
-                filled: true,
-                fillColor: inputFillColor,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+  Widget _buildSectionHeader(String title, IconData icon, Color textColor) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppTheme.mySystemBlue),
+          const SizedBox(width: 10),
+          Text(title, style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPinFields(Color textColor, Color subTextColor, Color inputFillColor, bool isDark) {
+    if (widget.isEditing && !_isOldPinVerified) {
+      return Column(
+        children: [
+          _buildSectionHeader("VERIFY IDENTITY", Icons.lock_outline, textColor),
+          Text("Enter your current PIN to continue", style: TextStyle(color: subTextColor, fontSize: 13)),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _oldPinController,
+            keyboardType: TextInputType.number,
+            obscureText: true,
+            style: TextStyle(color: textColor, letterSpacing: 8),
+            decoration: InputDecoration(
+              labelText: "Current PIN",
+              labelStyle: TextStyle(color: subTextColor, letterSpacing: 0),
+              filled: true,
+              fillColor: inputFillColor,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              prefixIcon: const Icon(Icons.password, color: AppTheme.mySystemBlue),
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.mySystemBlue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
+              onPressed: _verifyOldPin,
+              child: const Text("VERIFY PIN", style: TextStyle(fontWeight: FontWeight.bold)),
             ),
-          ],
-        );
-      case 1: // Confirm PIN
-        return Column(
-          children: [
-            Text("Confirm PIN", style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)),
-            Text("Re-enter the security code", style: TextStyle(color: subTextColor)),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _confirmPinController,
-              keyboardType: TextInputType.number,
-              obscureText: true,
-              style: TextStyle(color: textColor, letterSpacing: 5),
-              decoration: InputDecoration(
-                labelText: "Confirm PIN",
-                labelStyle: TextStyle(color: subTextColor),
-                filled: true,
-                fillColor: inputFillColor,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-              ),
-            ),
-          ],
-        );
-      case 2: // EXERCISE
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Scanning Protocol", style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)),
-            Text("Required activity to unlock", style: TextStyle(color: subTextColor)),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(color: inputFillColor, borderRadius: BorderRadius.circular(8)),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<ExerciseType>(
-                  value: _selectedExercise,
-                  dropdownColor: isDark ? AppTheme.darkSurface : AppTheme.lightSurface,
-                  style: TextStyle(color: textColor),
-                  isExpanded: true,
-                  onChanged: (val) => setState(() => _selectedExercise = val!),
-                  items: ExerciseType.values.map((type) => DropdownMenuItem(value: type, child: Text(type.name.toUpperCase()))).toList(),
-                ),
-              ),
-            ),
-            const SizedBox(height: 15),
-            Text("Target Reps: $_targetReps", style: TextStyle(color: textColor)),
-            Slider(
-              value: _targetReps.toDouble(),
-              min: 5, max: 50, divisions: 9,
-              activeColor: AppTheme.mySystemBlue,
-              label: _targetReps.toString(),
-              onChanged: (val) => setState(() => _targetReps = val.round()),
-            ),
-          ],
-        );
-      case 3: // CONSTRAINTS
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Usage Constraints", style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)),
-            Text("Session time & bypass limits", style: TextStyle(color: subTextColor)),
-            const SizedBox(height: 20),
-            
-            Text("Time Limit per use: $_usageTimeLimit mins", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
-            Slider(
-              value: _usageTimeLimit.toDouble(),
-              min: 5, max: 60, divisions: 11,
-              activeColor: AppTheme.mySystemBlue,
-              label: _usageTimeLimit.toString(),
-              onChanged: (val) => setState(() => _usageTimeLimit = val.round()),
-            ),
-            const SizedBox(height: 15),
-            
-            Text("Emergency Unlocks per day: $_maxExceptions", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
-            Slider(
-              value: _maxExceptions.toDouble(),
-              min: 0, max: 10, divisions: 10,
-              activeColor: AppTheme.mySystemRed,
-              label: _maxExceptions.toString(),
-              onChanged: (val) => setState(() => _maxExceptions = val.round()),
-            ),
-          ],
-        );
-      default:
-        return const SizedBox.shrink();
+          ),
+        ],
+      );
     }
+
+    return Column(
+      children: [
+        _buildSectionHeader(widget.isEditing ? "SET NEW PIN" : "SECURITY ACCESS", Icons.lock_clock_outlined, textColor),
+        TextField(
+          controller: _pinController,
+          keyboardType: TextInputType.number,
+          obscureText: true,
+          style: TextStyle(color: textColor, letterSpacing: 8),
+          decoration: InputDecoration(
+            labelText: widget.isEditing ? "New 4-digit PIN" : "Set 4-digit PIN",
+            labelStyle: TextStyle(color: subTextColor, letterSpacing: 0),
+            filled: true,
+            fillColor: inputFillColor,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            prefixIcon: const Icon(Icons.pin, color: AppTheme.mySystemBlue),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _confirmPinController,
+          keyboardType: TextInputType.number,
+          obscureText: true,
+          style: TextStyle(color: textColor, letterSpacing: 8),
+          decoration: InputDecoration(
+            labelText: "Confirm PIN",
+            labelStyle: TextStyle(color: subTextColor, letterSpacing: 0),
+            filled: true,
+            fillColor: inputFillColor,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            prefixIcon: const Icon(Icons.check_circle_outline, color: AppTheme.mySystemBlue),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExerciseSection(Color textColor, Color subTextColor, Color inputFillColor, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader("SCANNING PROTOCOL", Icons.fitness_center, textColor),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(color: inputFillColor, borderRadius: BorderRadius.circular(12)),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<ExerciseType>(
+              value: _selectedExercise,
+              dropdownColor: isDark ? AppTheme.darkSurface : AppTheme.lightSurface,
+              style: TextStyle(color: textColor, fontWeight: FontWeight.w600),
+              isExpanded: true,
+              onChanged: (val) => setState(() => _selectedExercise = val!),
+              items: ExerciseType.values.map((type) => DropdownMenuItem(value: type, child: Text(type.name.toUpperCase()))).toList(),
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text("Target Reps", style: TextStyle(color: textColor, fontWeight: FontWeight.w500)),
+            Text("$_targetReps", style: const TextStyle(color: AppTheme.mySystemBlue, fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        Slider(
+          value: _targetReps.toDouble(),
+          min: 5, max: 50, divisions: 45,
+          activeColor: AppTheme.mySystemBlue,
+          onChanged: (val) => setState(() => _targetReps = val.round()),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConstraintSection(Color textColor, Color subTextColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader("USAGE CONSTRAINTS", Icons.timer_outlined, textColor),
+        
+        _buildSliderRow("Session Limit", "$_usageTimeLimit min", _usageTimeLimit.toDouble(), 5, 60, 11, AppTheme.mySystemBlue, (v) => setState(() => _usageTimeLimit = v.round()), textColor),
+        const SizedBox(height: 15),
+        _buildSliderRow("Daily Emergency", "$_maxExceptions", _maxExceptions.toDouble(), 0, 10, 10, AppTheme.mySystemRed, (v) => setState(() => _maxExceptions = v.round()), textColor),
+        const SizedBox(height: 15),
+        _buildSliderRow("Daily Total", "$_dailyUnlockLimit", _dailyUnlockLimit.toDouble(), 1, 50, 49, AppTheme.mySystemPurple, (v) => setState(() => _dailyUnlockLimit = v.round()), textColor),
+      ],
+    );
+  }
+
+  Widget _buildSliderRow(String label, String valueText, double value, double min, double max, int divisions, Color activeColor, ValueChanged<double> onChanged, Color textColor) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: TextStyle(color: textColor, fontWeight: FontWeight.w500)),
+            Text(valueText, style: TextStyle(color: activeColor, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        Slider(
+          value: value,
+          min: min, max: max, divisions: divisions,
+          activeColor: activeColor,
+          onChanged: onChanged,
+        ),
+      ],
+    );
   }
 
   @override
@@ -244,8 +328,8 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
     return Scaffold(
       extendBodyBehindAppBar: true, 
       appBar: AppBar(
-        title: Text(widget.isEditing ? "EDIT SETTINGS" : "SECURE ${widget.appName.toUpperCase()}", 
-          style: TextStyle(fontSize: 16, color: textColor)),
+        title: Text(widget.isEditing ? "EDIT PROTOCOL" : "SECURE ${widget.appName.toUpperCase()}", 
+          style: TextStyle(fontSize: 16, color: textColor, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: textColor),
@@ -253,26 +337,44 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
       body: AppBackground(
         child: SafeArea(
           child: widget.isEditing
-              ? Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    children: [
-                      GlassContainer(
-                        padding: const EdgeInsets.all(20),
-                        child: _buildStepContent(_currentStep, textColor, subTextColor, inputFillColor, isDark)
-                      ),
-                      const Spacer(),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.mySystemBlue, foregroundColor: Colors.white),
-                          onPressed: _finishSetup,
-                          child: const Text("SAVE CHANGES", style: TextStyle(fontWeight: FontWeight.bold)),
+              ? Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        child: Column(
+                          children: [
+                            if (widget.editMode == EditMode.pin)
+                              GlassContainer(child: _buildPinFields(textColor, subTextColor, inputFillColor, isDark)),
+                            if (widget.editMode == EditMode.workout)
+                              GlassContainer(child: _buildExerciseSection(textColor, subTextColor, inputFillColor, isDark)),
+                            if (widget.editMode == EditMode.limits)
+                              GlassContainer(child: _buildConstraintSection(textColor, subTextColor)),
+                            const SizedBox(height: 100), 
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    if (widget.editMode != EditMode.pin || _isOldPinVerified)
+                    Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.mySystemBlue, 
+                            foregroundColor: Colors.white,
+                            elevation: 8,
+                            shadowColor: AppTheme.mySystemBlue.withOpacity(0.4),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          onPressed: _finishSetup,
+                          child: const Text("COMMIT CHANGES", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.5)),
+                        ),
+                      ),
+                    ),
+                  ],
                 )
               : Stepper(
                   type: StepperType.vertical,
@@ -303,27 +405,69 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
                   steps: [
                     Step(
                       title: Text("Set Access PIN", style: TextStyle(color: textColor)),
-                      subtitle: Text("Step 1", style: TextStyle(color: subTextColor)),
+                      subtitle: Text("Security Level 1", style: TextStyle(color: subTextColor, fontSize: 12)),
                       isActive: _currentStep >= 0,
-                      content: _buildStepContent(0, textColor, subTextColor, inputFillColor, isDark),
+                      content: GlassContainer(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            Text("Used for emergency bypass", style: TextStyle(color: subTextColor, fontSize: 14)),
+                            const SizedBox(height: 15),
+                            TextField(
+                              controller: _pinController,
+                              keyboardType: TextInputType.number,
+                              obscureText: true,
+                              style: TextStyle(color: textColor, letterSpacing: 5),
+                              decoration: InputDecoration(
+                                labelText: "Enter 4-digit PIN",
+                                labelStyle: TextStyle(color: subTextColor),
+                                filled: true,
+                                fillColor: inputFillColor,
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                     Step(
                       title: Text("Confirm PIN", style: TextStyle(color: textColor)),
-                      subtitle: Text("Step 2", style: TextStyle(color: subTextColor)),
+                      subtitle: Text("Verification", style: TextStyle(color: subTextColor, fontSize: 12)),
                       isActive: _currentStep >= 1,
-                      content: _buildStepContent(1, textColor, subTextColor, inputFillColor, isDark),
+                      content: GlassContainer(
+                        padding: const EdgeInsets.all(16),
+                        child: TextField(
+                          controller: _confirmPinController,
+                          keyboardType: TextInputType.number,
+                          obscureText: true,
+                          style: TextStyle(color: textColor, letterSpacing: 5),
+                          decoration: InputDecoration(
+                            labelText: "Confirm PIN",
+                            labelStyle: TextStyle(color: subTextColor),
+                            filled: true,
+                            fillColor: inputFillColor,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          ),
+                        ),
+                      ),
                     ),
                     Step(
                       title: Text("Scanning Protocol", style: TextStyle(color: textColor)),
-                      subtitle: Text("Activity Rules", style: TextStyle(color: subTextColor)),
+                      subtitle: Text("Activity Rules", style: TextStyle(color: subTextColor, fontSize: 12)),
                       isActive: _currentStep >= 2,
-                      content: _buildStepContent(2, textColor, subTextColor, inputFillColor, isDark),
+                      content: GlassContainer(
+                        padding: const EdgeInsets.all(16),
+                        child: _buildExerciseSection(textColor, subTextColor, inputFillColor, isDark),
+                      ),
                     ),
                     Step(
                       title: Text("Usage Constraints", style: TextStyle(color: textColor)),
-                      subtitle: Text("Step 4", style: TextStyle(color: subTextColor)),
+                      subtitle: Text("Limit Control", style: TextStyle(color: subTextColor, fontSize: 12)),
                       isActive: _currentStep >= 3,
-                      content: _buildStepContent(3, textColor, subTextColor, inputFillColor, isDark),
+                      content: GlassContainer(
+                        padding: const EdgeInsets.all(16),
+                        child: _buildConstraintSection(textColor, subTextColor),
+                      ),
                     ),
                   ],
                 ),
@@ -332,3 +476,5 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
     );
   }
 }
+
+

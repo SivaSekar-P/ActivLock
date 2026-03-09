@@ -7,7 +7,22 @@ import android.content.Context
 import android.content.SharedPreferences
 
 class AppAccessibilityService : AccessibilityService() {
+    companion object {
+        var instance: AppAccessibilityService? = null
+        fun forceReload() {
+            instance?.loadLockedApps()
+        }
+        fun updateNativeList(packages: List<String>) {
+            instance?.setNativeLockedApps(packages)
+        }
+    }
+
     private var nativeLockedApps: List<String> = emptyList()
+
+    fun setNativeLockedApps(packages: List<String>) {
+        nativeLockedApps = packages
+        android.util.Log.d("ActivLock", "Native locked apps updated: ${nativeLockedApps.joinToString(",")}")
+    }
 
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
     private val reloadRunnable = object : Runnable {
@@ -19,12 +34,13 @@ class AppAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        instance = this
         loadLockedApps()
         // Start polling
         handler.post(reloadRunnable)
     }
 
-    private fun loadLockedApps() {
+    fun loadLockedApps() {
         val prefs: SharedPreferences = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
         val rawList = prefs.getString("flutter.native_locked_apps", "") ?: ""
         nativeLockedApps = if (rawList.isNotEmpty()) rawList.split(",") else emptyList()
@@ -32,6 +48,7 @@ class AppAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        if (instance == this) instance = null
         handler.removeCallbacks(reloadRunnable)
     }
 

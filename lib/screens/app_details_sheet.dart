@@ -101,7 +101,7 @@ class AppDetailsSheet extends ConsumerWidget {
                 subtitle: "Update access code",
                 textColor: textColor,
                 subTextColor: subTextColor,
-                onTap: () => _openConfig(context, 0),
+                onTap: () => _openConfig(context, EditMode.pin),
               ),
               
               _buildActionTile(
@@ -111,7 +111,7 @@ class AppDetailsSheet extends ConsumerWidget {
                 subtitle: "Change exercise or reps",
                 textColor: textColor,
                 subTextColor: subTextColor,
-                onTap: () => _openConfig(context, 1),
+                onTap: () => _openConfig(context, EditMode.workout),
               ),
 
               _buildActionTile(
@@ -121,7 +121,7 @@ class AppDetailsSheet extends ConsumerWidget {
                 subtitle: "Daily opens & emergency",
                 textColor: textColor,
                 subTextColor: subTextColor,
-                onTap: () => _openConfig(context, 2),
+                onTap: () => _openConfig(context, EditMode.limits),
               ),
               
               Divider(color: isDark ? Colors.white10 : Colors.black12, height: 30),
@@ -149,7 +149,7 @@ class AppDetailsSheet extends ConsumerWidget {
     );
   }
 
-  void _openConfig(BuildContext context, int step) {
+  void _openConfig(BuildContext context, EditMode mode) {
     Navigator.pop(context);
     Navigator.push(
       context,
@@ -157,8 +157,8 @@ class AppDetailsSheet extends ConsumerWidget {
         builder: (_) => AppConfigurationScreen(
           packageName: app.packageName,
           appName: app.appName,
-          initialStep: step,
-          isEditing: true, // Enable Single Step Edit
+          isEditing: true, 
+          editMode: mode,
         ),
       ),
     );

@@ -31,6 +31,8 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
   int _targetReps = 10;
   int _maxExceptions = 3;
   int _usageTimeLimit = 15;
+  int _dailyUnlockLimit = 10;
+  int _usedUnlocks = 0;
 
   void initState() {
     super.initState();
@@ -50,6 +52,8 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
       _targetReps = currentApp.targetReps;
       _maxExceptions = currentApp.dailyExceptions;
       _usageTimeLimit = currentApp.usageTimeLimit;
+      _dailyUnlockLimit = currentApp.dailyUnlockLimit;
+      _usedUnlocks = currentApp.usedUnlocks;
       
       final usedE = currentApp.usedExceptions;
       _canEmergency = usedE < _maxExceptions;
@@ -87,6 +91,10 @@ class _LockOverlayScreenState extends ConsumerState<LockOverlayScreen> {
   }
 
   void _startActivity(ExerciseType type) async {
+    if (_usedUnlocks >= _dailyUnlockLimit) {
+      _showSnack('Daily unlock limit reached for this app!');
+      return;
+    }
 
     final result = await Navigator.pushNamed(
         context,

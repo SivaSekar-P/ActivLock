@@ -42,6 +42,15 @@ class MainActivity: FlutterActivity() {
                     result.success(pendingLockedPackage)
                     pendingLockedPackage = null
                 }
+                "updateLockedApps" -> {
+                    val packages = call.argument<List<String>>("packages")
+                    if (packages != null) {
+                        AppAccessibilityService.updateNativeList(packages)
+                    } else {
+                        AppAccessibilityService.forceReload()
+                    }
+                    result.success(null)
+                }
                 else -> {
                     result.notImplemented()
                 }

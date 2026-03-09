@@ -209,6 +209,11 @@ class AppLockService {
     // 3. Update Native String so accessibility service ignores this app
     await prefs.setString('native_locked_apps', lockedPackageNames.join(','));
 
+    // Force Native Android to reload SharedPreferences IMMEDIATELY
+    try {
+      await _channel.invokeMethod('updateLockedApps', {'packages': lockedPackageNames});
+    } catch (_) {}
+
     // 4. Schedule re-lock
     Future.delayed(duration, () async {
       // Fetch fresh list (in case user added more apps while waiting)
