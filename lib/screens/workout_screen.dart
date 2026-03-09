@@ -65,30 +65,33 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   }
 
   void _showInstructions() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary;
+    
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.darkSurface,
+        backgroundColor: isDark ? AppTheme.darkSurface : AppTheme.lightSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: const BorderSide(color: AppTheme.mySystemBlue)),
         title: Row(
           children: [
             const Icon(Icons.info_outline, color: AppTheme.mySystemBlue),
             const SizedBox(width: 10),
-            Text("${widget.exerciseType.name.toUpperCase()} SETUP", style: const TextStyle(color: Colors.white, fontSize: 18)),
+            Text("${widget.exerciseType.name.toUpperCase()} SETUP", style: TextStyle(color: textColor, fontSize: 18)),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _instructionStep("1. Place phone on the floor, leaning against a wall."),
+            _instructionStep("1. Place phone on the floor, leaning against a wall.", isDark),
             const SizedBox(height: 10),
-            _instructionStep("2. Ensure the front camera faces you."),
+            _instructionStep("2. Ensure the front camera faces you.", isDark),
             const SizedBox(height: 10),
-            _instructionStep("3. Step back until your WHOLE body is visible (Head to Toe)."),
+            _instructionStep("3. Step back until your WHOLE body is visible (Head to Toe).", isDark),
             const SizedBox(height: 10),
-            _instructionStep("4. Wait for the skeleton lines to appear."),
+            _instructionStep("4. Wait for the skeleton lines to appear.", isDark),
           ],
         ),
         actions: [
@@ -101,8 +104,8 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     );
   }
 
-  Widget _instructionStep(String text) {
-    return Text(text, style: const TextStyle(color: Colors.white70, fontSize: 14));
+  Widget _instructionStep(String text, bool isDark) {
+    return Text(text, style: TextStyle(color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary, fontSize: 14));
   }
 
   Future<void> _initializeCamera() async {
@@ -180,14 +183,16 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     await ref.read(usageServiceProvider).incrementUnlockCount();
 
     if (!mounted) return;
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.darkSurface,
+        backgroundColor: isDark ? AppTheme.darkSurface : AppTheme.lightSurface,
         title: const Text("UNLOCKED!", style: TextStyle(color: AppTheme.mySystemBlue, fontWeight: FontWeight.bold)),
-        content: const Text("Protocol complete. Access granted for 15 minutes.", style: TextStyle(color: Colors.white)),
+        content: Text("Protocol complete. Access granted for 15 minutes.", style: TextStyle(color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary)),
         actions: [
           TextButton(
             onPressed: () {
@@ -435,11 +440,11 @@ class PosePainter extends CustomPainter {
 
     // Explicit Front vs Back Camera Handling
     if (cameraDirection == CameraLensDirection.front) {
-      // The user indicated front camera was inverted when using `screenSize.width - screenX`.
+      // Front camera matches screenX without mirroring.
       return Offset(screenX, screenY);
     } else {
-      // The user indicated back camera was correct when using `screenX`.
-      return Offset(screenX, screenY);
+      // Rear camera requires X mirroring.
+      return Offset(screenSize.width - screenX, screenY);
     }
   }
 
