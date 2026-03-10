@@ -100,13 +100,24 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
     ));
   }
 
-  void _verifyOldPin() {
-    if (_oldPinController.text == _storedPin) {
-      setState(() {
-        _isOldPinVerified = true;
-      });
+  void _verifyOldPin() async {
+    bool isValid = false;
+    if (_storedPin.isNotEmpty) {
+      isValid = _oldPinController.text == _storedPin;
     } else {
-      _showError("Incorrect Old PIN!");
+      isValid = await ref.read(settingsServiceProvider).verifyPin(_oldPinController.text);
+    }
+
+    if (isValid) {
+      if (mounted) {
+        setState(() {
+          _isOldPinVerified = true;
+        });
+      }
+    } else {
+      if (mounted) {
+        _showError("Incorrect Old PIN!");
+      }
     }
   }
 
@@ -143,7 +154,7 @@ class _AppConfigurationScreenState extends ConsumerState<AppConfigurationScreen>
       packageName: widget.packageName,
       appName: widget.appName,
       isLocked: true,
-      pinCode: (widget.isEditing && widget.editMode == EditMode.pin) ? _pinController.text : _storedPin,
+      pinCode: (!widget.isEditing || widget.editMode == EditMode.pin) ? _pinController.text : _storedPin,
       exerciseType: _selectedExercise,
       targetReps: _targetReps,
       dailyExceptions: _maxExceptions,
